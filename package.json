@@ -1,0 +1,44 @@
+{
+  "name": "civ6bot",
+  "version": "1.0.0",
+  "description": "civ6bot for discord server",
+  "main": "build/client.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node build/client.js",
+    "dev": "ts-node src/client.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ZhenjaMax/civ6bot.git"
+  },
+  "keywords": [
+    "discordx",
+    "discord.ts",
+    "discord.js",
+    "bot",
+    "discord",
+    "typescript",
+    "civ6",
+    "civ6bot"
+  ],
+  "author": "ZhenjaMax",
+  "license": "Apache License 2.0",
+  "bugs": {
+    "url": "https://github.com/ZhenjaMax/civ6bot/issues"
+  },
+  "homepage": "https://github.com/ZhenjaMax/civ6bot#readme",
+  "devDependencies": {
+    "prettier": "^2.4.1",
+    "typescript": "^4.4.4"
+  },
+  "dependencies": {
+    "@discordx/utilities": "^3.0.4",
+    "@types/request": "^2.48.7",
+    "discord.js": "^13.3.1",
+    "discordx": "^8.1.0",
+    "dotenv": "^10.0.0",
+    "reflect-metadata": "^0.1.13",
+    "request": "^2.88.2"
+  }
+}
