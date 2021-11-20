@@ -1,8 +1,8 @@
-export interface catImageJSON {
+export interface CatImageJSON {
     file: string;
 }
 
-export interface dogImageJSON{
+export interface DogImageJSON{
     message: string;
     status: string;
 }
