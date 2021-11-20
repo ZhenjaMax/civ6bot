@@ -1,10 +1,6 @@
 # IDE
 .idea
 
-# Bot-example
-src/commands
-src/events
-
 # Build
 build
 
