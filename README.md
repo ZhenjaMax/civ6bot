@@ -1,7 +1,28 @@
-# civ6bot
+![Header Image](./docs/images/header.png?style=centerme)
 
-Many thanks to **oceanroleplay** (https://github.com/oceanroleplay)
+Bot for Civilization VI Discord Community [«CivReborn»](https://discord.gg/sdfQtDQMFs).
+Developed on TypeScript and use SQLite, Express, Discord API, Steam Web-API.
 
-Based on his example bot: https://github.com/oceanroleplay/discord.ts-example
+# Features
+- civilizations draft
+  - default 
+  - teamers 
+  - blind
+- connection to user's Steam account
+  - lobby link generation
+- miscellaneous functions:
+  - get random number
+  - coin flip
+  - random cat or dog image
 
-Description will be soon...
+# Installation
++ download this project
++ `cd civ6bot`
++ `npm install`
++ create `.env` file and fill necessary values (see [ENV-configuration]())
++ `npm run all`
+
+# Sources
+Bot based on these example projects:
+- **oceanroleplay** - [Discord TS Example](https://github.com/oceanroleplay/discord.ts-example);
+- **thrymgjol** - [Typescript Sequelize Example](https://github.com/thrymgjol/typescript-sequelize-example).

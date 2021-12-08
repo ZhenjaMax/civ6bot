@@ -1,9 +1,9 @@
 import {DraftEmbedObject} from "../draft.models";
 import {MessageActionRow, MessageButton} from "discord.js";
-import {BotlibEmojies} from "../../../botlib/botlib.emojies";
+import {BotlibEmojis} from "../../../botlib/botlib.emojis";
 
 export class DraftButtons{
-    botlibEmojies: BotlibEmojies = new BotlibEmojies();
+    botlibEmojis: BotlibEmojis = new BotlibEmojis();
     buttonsPerRow: number = 5;
 
     blindPmRows(draftEmbedObject: DraftEmbedObject, userIndex: number): MessageActionRow[]{
@@ -33,12 +33,12 @@ export class DraftButtons{
         let buttonArray: MessageButton[] = [];
         buttonArray.push(
             new MessageButton()
-                .setEmoji(this.botlibEmojies.yes)
+                .setEmoji(this.botlibEmojis.yes)
                 .setLabel("За")
                 .setStyle("SUCCESS")
                 .setCustomId("redraftButton-yes"),
             new MessageButton()
-                .setEmoji(this.botlibEmojies.no)
+                .setEmoji(this.botlibEmojis.no)
                 .setLabel("Против")
                 .setStyle("DANGER")
                 .setCustomId("redraftButton-no"))

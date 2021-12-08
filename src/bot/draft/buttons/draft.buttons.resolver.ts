@@ -40,14 +40,10 @@ export abstract class DraftButtonsResolver{
             draftEmbedObject.draft[userNumber] = [draftEmbedObject.draft[userNumber][civilizationNumber]];
             draftEmbedObject.usersReadyBlind[userNumber] = true;
 
-            await msg.edit({
-                embeds: [this.draftService.draftEmbeds.draftBlindPmReady(draftEmbedObject, userNumber)],
-                components: []
-            });
-            await draftEmbedObject.interaction.editReply({embeds: [this.draftService.draftEmbeds.draftBlindProcessing(draftEmbedObject)]});
-            if((draftEmbedObject.usersReadyBlind.filter(x => x)).length == draftEmbedObject.users.length) {
+            await msg.edit({embeds: [this.draftService.draftEmbeds.draftBlindPmReady(draftEmbedObject, userNumber)], components: []});
+            if((draftEmbedObject.usersReadyBlind.filter(x => x)).length == draftEmbedObject.users.length)
                 draftEmbedObject.isProcessing = false;
-            }
+            await draftEmbedObject.interaction.editReply({embeds: [this.draftService.draftEmbeds.draftBlindProcessing(draftEmbedObject)]});
         } catch (buttonError) {
             return;
         }
@@ -77,6 +73,7 @@ export abstract class DraftButtonsResolver{
                 setTimeout((): void => {this.draftService.runRedraft(draftEmbedObject);}, 3000);
             } else
                 msg.edit({ embeds: [this.draftService.draftEmbeds.redraftProcessing(draftEmbedObject)] });
+            return;
         } catch (buttonError){
             return;
         }
@@ -90,7 +87,7 @@ export abstract class DraftButtonsResolver{
             let userNumber: number = draftEmbedObject.users.indexOf(interaction.user);
 
             if(userNumber == -1){
-                interaction.reply({embeds: [this.draftService.botlibEmbeds.error("Вы не были участником игры, в голосовании которой вы пытаетесь принять участие.")], ephemeral: true});
+                interaction.reply({embeds: [this.draftService.botlibEmbeds.error("Вы не принимаете участие в данной игре.")], ephemeral: true});
                 return;
             }
 
@@ -103,10 +100,9 @@ export abstract class DraftButtonsResolver{
                 delete this.draftService.lastDraftEmbedObject;
             } else
                 msg.edit({ embeds: [this.draftService.draftEmbeds.redraftProcessing(draftEmbedObject)] });
-
+            return;
         } catch (buttonError){
             return;
         }
     }
-
 }

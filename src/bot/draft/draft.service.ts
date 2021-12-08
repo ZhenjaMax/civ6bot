@@ -11,7 +11,6 @@ export class DraftService{
     draftEmbeds: DraftEmbeds = new DraftEmbeds();
     botlibEmbeds: BotlibEmbeds = new BotlibEmbeds();
     draftButtons: DraftButtons = new DraftButtons();
-
     private static _instance: DraftService;
     private constructor() {}
     public static get Instance(){
@@ -33,7 +32,6 @@ export class DraftService{
         return this.draftEmbeds.draftFFA(draftEmbedObject);
     }
 
-    // Декоратор изменён для массивов объектов типа Embed
     @SignEmbed
     getDraftTeamers(interaction: CommandInteraction, draftEmbedObject: DraftEmbedObject): MessageEmbed[]{
         DraftEmbedObjectRoutine.setType(draftEmbedObject,"teamers");
@@ -56,15 +54,20 @@ export class DraftService{
             return this.botlibEmbeds.error("Недостаточно цивилизаций для такого драфта.");
         if(this.lastDraftEmbedObject?.isProcessing && !draftEmbedObject.isProcessing)
             return this.botlibEmbeds.error("В данный момент уже проводится драфт. Пожалуйста, подождите.");
-        this.lastDraftEmbedObject = draftEmbedObject;
 
-        this.lastDraftEmbedObject.isProcessing = true;
-        for(let i: number = 0; i < draftEmbedObject.users.length; i++)
-            draftEmbedObject.users[i].send({
-                embeds: [this.draftEmbeds.draftBlindPm(draftEmbedObject, i)],
-                components: this.draftButtons.blindPmRows(draftEmbedObject, i)
-            });
-        return this.draftEmbeds.draftBlindProcessing(draftEmbedObject);
+        try{
+            this.lastDraftEmbedObject = draftEmbedObject;
+            this.lastDraftEmbedObject.isProcessing = true;
+            for(let i: number = 0; i < draftEmbedObject.users.length; i++)
+                draftEmbedObject.users[i].send({
+                    embeds: [this.draftEmbeds.draftBlindPm(draftEmbedObject, i)],
+                    components: this.draftButtons.blindPmRows(draftEmbedObject, i)
+                });
+            return this.draftEmbeds.draftBlindProcessing(draftEmbedObject);
+        } catch (e) {
+            delete this.lastDraftEmbedObject;
+            return this.botlibEmbeds.error("Один из игроков заблокировал бота!");
+        }
     }
 
     getRedraft(interaction: CommandInteraction){
@@ -78,6 +81,7 @@ export class DraftService{
         }
         if(this.lastDraftEmbedObject.users.indexOf(interaction.user) == -1){
             interaction.reply({embeds: [this.botlibEmbeds.error("Вашего драфта для редрафта не найдено.")]});
+            return;
         }
         this.lastDraftEmbedObject.redraftMinAmount = Math.min(
             this.lastDraftEmbedObject.users.length,
@@ -105,7 +109,6 @@ export class DraftService{
                 return;
         }
     }
-
 }
 
 

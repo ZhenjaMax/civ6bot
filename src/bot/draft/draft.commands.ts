@@ -17,8 +17,7 @@ export abstract class DraftCommands {
         await interaction.reply( { embeds: [this.draftService.getDraftFFA(interaction, new DraftEmbedObject(interaction, amount, bans))] } );
     }
 
-    // Возвращает массив сообщений
-    // interaction.reply изменён (без [])
+    // Возвращает массив сообщений MessageEmbed[]
     @Slash("teamers", { description: "Драфт цивилизаций для Teamers" })
     async draftTeamers(
         @SlashOption("количество-команд", { required: false }) amount: number = 2,
@@ -44,7 +43,6 @@ export abstract class RedraftCommands{
 
     @Slash("redraft", { description: "Получить редрафт последнего драфта" })
     async redraft(interaction: CommandInteraction){
-        this.draftService.getRedraft(interaction);
-        return;
+        await this.draftService.getRedraft(interaction);
     }
 }

@@ -2,27 +2,30 @@ import {MessageEmbed, User} from "discord.js";
 import {DraftEmbedObject} from "./draft.models";
 import {BotlibRandom} from "../../botlib/botlib.random";
 import {DraftConfig} from "./draft.config";
-import {BotlibEmojies} from "../../botlib/botlib.emojies";
+import {BotlibEmojis} from "../../botlib/botlib.emojis";
 
 export class DraftEmbeds{
-    botlibEmojies: BotlibEmojies = new BotlibEmojies();
+    botlibEmojis: BotlibEmojis = new BotlibEmojis();
 
-    protected baseDraftEmbed(draftEmbedObject: DraftEmbedObject): MessageEmbed{
+    protected getBaseDescriptionString(draftEmbedObject: DraftEmbedObject): string{
         let bansString: string = "";
+        let errorsString: string = "";
+        let botsString: string = "";
+        let blindNoSwapString: string = "";
+        let blindProcessing: string = "";
+
         if(draftEmbedObject.bans.length != 0){
             bansString += `⛔ **Список банов (${draftEmbedObject.bans.length}):**\n`;
             for(let ban of draftEmbedObject.bans)
                 bansString += (ban + "\n");
             bansString += "\u200B";
         }
-        let errorsString: string = "";
         if(draftEmbedObject.errors.length != 0){
             errorsString += `⚠️ **Список ошибок (${draftEmbedObject.errors.length}):**\n`;
             for(let error of draftEmbedObject.errors)
                 errorsString += (error + ", ");
             errorsString = errorsString.slice(0, -2) + "\n";
         }
-        let botsString: string = "";
         if(draftEmbedObject.type != "teamers"){
             if(draftEmbedObject.botsCount != 0){
                 botsString += `🤖 **В канале присутству${
@@ -32,12 +35,19 @@ export class DraftEmbeds{
                 }.**\nБоты были удалены из драфта.`
             }
         }
-        let blindNoSwapString: string = "";
-        if(draftEmbedObject.type == "blind")
+        if(draftEmbedObject.type == "blind") {
             blindNoSwapString += "\n❗ **Свап цивилизациями запрещён при драфте вслепую.**";
+            if(draftEmbedObject.isProcessing)
+                blindProcessing += "\nИгроки выбирают цивилизации. Пожалуйста, подождите.";
+        }
+
+        return bansString+errorsString+botsString+blindNoSwapString+blindProcessing;
+    }
+
+    protected baseDraftEmbed(draftEmbedObject: DraftEmbedObject): MessageEmbed{
         return new MessageEmbed()
             .setColor(BotlibRandom.getRandomHexBrightString())
-            .setDescription(bansString+errorsString+botsString+blindNoSwapString);
+            .setDescription(this.getBaseDescriptionString(draftEmbedObject));
     }
 
     draftFFA(draftEmbedObject: DraftEmbedObject): MessageEmbed{
@@ -47,12 +57,9 @@ export class DraftEmbeds{
             + (draftEmbedObject.users.length == 1 ? "а" : "ов");
         let embedMsg = this.baseDraftEmbed(draftEmbedObject)
             .setAuthor(headerString);
+
         for(let i = 0; i < draftEmbedObject.users.length; i++){
-            let fieldString: string = `**${
-                draftEmbedObject.users[i].tag
-            }** (<@${
-                draftEmbedObject.users[i].id
-            }>)`;
+            let fieldString: string = `**${draftEmbedObject.users[i].tag}** (<@${draftEmbedObject.users[i].id}>)`;
             for(let j = 0; j < draftEmbedObject.amount; j++)
                 fieldString += `\n${draftEmbedObject.draft[i][j]}`;
             embedMsg.addField("\u200b", fieldString);
@@ -88,7 +95,7 @@ export class DraftEmbeds{
         return new MessageEmbed()
             .setAuthor("Выбор цивилизации для драфта вслепую")
             .setDescription("Вам предлагается тайно выбрать одну из цивилизаций, перечисленных ниже.\n❗ **Свап цивилизациями запрещён при драфте вслепую.**")
-            .addField("🤔 Примите решение.", fieldString)
+            .addField("🤔 Чтобы выбрать, нажмите на одну из кнопок ниже.", fieldString)
             .setColor("#FFFFFF");
     }
 
@@ -112,12 +119,11 @@ export class DraftEmbeds{
         let readyString: string = "";
         for(let i: number = 0; i < draftEmbedObject.users.length; i++){
             usersString += `${draftEmbedObject.users[i]}\n`;
-            readyString += `${draftEmbedObject.usersReadyBlind[i] ? this.botlibEmojies.yes : this.botlibEmojies.no}\n`
+            readyString += `${draftEmbedObject.usersReadyBlind[i] ? this.botlibEmojis.yes : this.botlibEmojis.no}\n`
         }
-        return new MessageEmbed()
+        return this.baseDraftEmbed(draftEmbedObject)
             .setAuthor(headerString)
             .setColor("#FFFFFF")
-            .setDescription("Игроки выбирают цивилизации. Пожалуйста, подождите.")
             .addField("**Игрок:**", usersString, true)
             .addField("**Готов?**", readyString, true);
     }
@@ -148,13 +154,13 @@ export class DraftEmbeds{
         let embedMsg: MessageEmbed = new MessageEmbed();
         switch(draftEmbedObject.redraftResult){
             case -1:
-                descriptionString += `Предлагается провести редрафт.\nДля успешного редрафта необходимо **${draftEmbedObject.redraftMinAmount}/${draftEmbedObject.users.length} голосов** ${this.botlibEmojies.yes} **\"за\".**\n\n⏰ **На голосование отводится 90 секунд!**`;
+                descriptionString += `Предлагается провести редрафт.\nДля успешного редрафта необходимо **${draftEmbedObject.redraftMinAmount}/${draftEmbedObject.users.length} голосов** ${this.botlibEmojis.yes} **\"за\".**\n\n⏰ **На голосование отводится 90 секунд!**`;
                 break;
             case 0:
-                descriptionString = `${this.botlibEmojies.no} **Редрафт отклонён.**`;
+                descriptionString = `${this.botlibEmojis.no} **Редрафт отклонён.**`;
                 break;
             case 1:
-                descriptionString = `${this.botlibEmojies.yes} **Редрафт принят.**`;
+                descriptionString = `${this.botlibEmojis.yes} **Редрафт принят.**`;
                 break;
         }
         let authorUser: User = draftEmbedObject.interaction.user as User;
@@ -164,8 +170,8 @@ export class DraftEmbeds{
             .setColor("#b0b0b0")
             .setFooter(authorUser.tag, authorUser.avatarURL() || undefined)
             .setDescription(descriptionString)
-            .addField(`${this.botlibEmojies.yes} **За**`, `${draftEmbedObject.redraftStatus.filter(x => (x==1)).length}`, true)
-            .addField(`${this.botlibEmojies.no} **Против**`, `${draftEmbedObject.redraftStatus.filter(x => (x==0)).length}`, true);
+            .addField(`${this.botlibEmojis.yes} **За**`, `${draftEmbedObject.redraftStatus.filter(x => (x==1)).length}`, true)
+            .addField(`${this.botlibEmojis.no} **Против**`, `${draftEmbedObject.redraftStatus.filter(x => (x==0)).length}`, true);
         return embedMsg;
     }
 }

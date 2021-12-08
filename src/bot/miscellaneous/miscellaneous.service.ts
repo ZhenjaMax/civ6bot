@@ -22,7 +22,8 @@ export class MiscellaneousService {
         await request.get(this.miscellaneousConfig.randomCatURL, async (error, response, body) => {
             let catImageInstance: CatImageJSON = JSON.parse(body.toString());
             await interaction.reply({embeds: [this.miscellaneousEmbeds.catImage(
-                interaction.user, catImageInstance.file
+                interaction.user,
+                (Math.random() < 0.005) ? "https://i.imgur.com/9Wpk54U.png" : catImageInstance.file
             )]});
         });
     }
