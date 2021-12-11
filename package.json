@@ -36,17 +36,15 @@
   },
   "dependencies": {
     "@discordx/utilities": "^3.0.4",
-    "@types/request": "^2.48.7",
+    "@mapbox/node-pre-gyp": "^1.0.7",
     "discord.js": "^13.3.1",
     "discordx": "^8.1.0",
     "dotenv": "^10.0.0",
     "express": "^4.17.1",
-    "mysql2": "^2.3.3",
     "node-fetch": "^2.6.6",
     "pg": "^8.7.1",
     "reflect-metadata": "^0.1.13",
-    "request": "^2.65.0",
     "sequelize": "^6.12.0-beta.1",
-    "sqlite3": "^5.0.2"
+    "sqlite3": "^4.2.0"
   }
 }

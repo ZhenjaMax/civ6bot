@@ -1,8 +1,7 @@
 import {CommandInteraction, MessageEmbed} from "discord.js";
-import request from "request";
+const fetch = require('node-fetch');
 
 import {MiscellaneousEmbeds } from "./miscellaneous.embeds";
-import {CatImageJSON, DogImageJSON} from "./miscellaneous.models";
 import {BotlibEmbeds, SignEmbed} from "../../botlib/botlib.embeds";
 import {MiscellaneousConfig} from "./miscellaneous.config";
 
@@ -19,22 +18,18 @@ export class MiscellaneousService {
 
     /* Невозможно использовать декоратор @SignEmbed */
     async getRandomCat(interaction: CommandInteraction){
-        await request.get(this.miscellaneousConfig.randomCatURL, async (error, response, body) => {
-            let catImageInstance: CatImageJSON = JSON.parse(body.toString());
-            await interaction.reply({embeds: [this.miscellaneousEmbeds.catImage(
-                interaction.user,
-                (Math.random() < 0.005) ? "https://i.imgur.com/9Wpk54U.png" : catImageInstance.file
-            )]});
-        });
+        let catData = await fetch(this.miscellaneousConfig.randomCatURL);
+        catData = await catData.json();
+        let catURL: string = (Math.random() < 0.01) ? "https://i.imgur.com/9Wpk54U.png" : catData.file;
+        await interaction.reply({embeds: [this.miscellaneousEmbeds.catImage(interaction.user, catURL)]});
     }
 
     /* Невозможно использовать декоратор @SignEmbed */
     async getRandomDog(interaction: CommandInteraction){
-        request.get(this.miscellaneousConfig.randomDogURL, async (error, response, body) => {
-            let dogImageInstance: DogImageJSON = JSON.parse(body.toString());
-            await interaction.reply({embeds: [this.miscellaneousEmbeds.dogImage(
-                interaction.user, dogImageInstance.message)]});
-        });
+        let dogData = await fetch(this.miscellaneousConfig.randomDogURL);
+        dogData = await dogData.json();
+        let dogURL: string = dogData.message;
+        await interaction.reply({embeds: [this.miscellaneousEmbeds.dogImage(interaction.user, dogURL)]});
     }
 
     @SignEmbed
