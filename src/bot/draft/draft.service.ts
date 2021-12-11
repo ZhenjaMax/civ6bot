@@ -1,4 +1,4 @@
-import {CommandInteraction, MessageEmbed} from "discord.js";
+import {CommandInteraction, Message, MessageEmbed} from "discord.js";
 import {DraftEmbedObject} from "./draft.models"
 import {BotlibEmbeds, SignEmbed} from "../../botlib/botlib.embeds";
 import {DraftEmbeds} from "./draft.embeds";
@@ -7,7 +7,8 @@ import {DraftButtons} from "./buttons/draft.buttons";
 
 // Singleton
 export class DraftService{
-    lastDraftEmbedObject: DraftEmbedObject | undefined;
+    draftEmbedObjectArray: DraftEmbedObject[] = [];
+
     draftEmbeds: DraftEmbeds = new DraftEmbeds();
     botlibEmbeds: BotlibEmbeds = new BotlibEmbeds();
     draftButtons: DraftButtons = new DraftButtons();
@@ -26,9 +27,16 @@ export class DraftService{
             return this.botlibEmbeds.error("Не более 16 лидеров для одного игрока.");
         if(draftEmbedObject.draft[0] == undefined)
             return this.botlibEmbeds.error("Недостаточно цивилизаций для такого драфта.");
-        if(this.lastDraftEmbedObject?.isProcessing)
-            return this.botlibEmbeds.error("В данный момент уже проводится драфт. Пожалуйста, подождите.");
-        this.lastDraftEmbedObject = draftEmbedObject;
+
+        let lastDEO: DraftEmbedObject | undefined = this.draftEmbedObjectArray.filter((x: DraftEmbedObject) => (x.guildID == draftEmbedObject.guildID))[0];
+        if(lastDEO) {
+            if(lastDEO.isProcessing)
+                return this.botlibEmbeds.error("В данный момент уже проводится драфт. Пожалуйста, подождите.");
+            else
+                this.draftEmbedObjectArray[this.draftEmbedObjectArray.indexOf(lastDEO)] = draftEmbedObject;
+        } else
+            this.draftEmbedObjectArray.push(draftEmbedObject);
+
         return this.draftEmbeds.draftFFA(draftEmbedObject);
     }
 
@@ -37,14 +45,20 @@ export class DraftService{
         DraftEmbedObjectRoutine.setType(draftEmbedObject,"teamers");
         if(draftEmbedObject.amount < 2 || draftEmbedObject.amount > 6)
             return [this.botlibEmbeds.error("Поддерживается от 2 до 6 команд.")];
-        if(this.lastDraftEmbedObject?.isProcessing)
-            return [this.botlibEmbeds.error("В данный момент уже проводится драфт. Пожалуйста, подождите.")];
-        this.lastDraftEmbedObject = draftEmbedObject;
+
+        let lastDEO: DraftEmbedObject | undefined = this.draftEmbedObjectArray.filter((x: DraftEmbedObject) => (x.guildID == draftEmbedObject.guildID))[0];
+        if(lastDEO) {
+            if(lastDEO.isProcessing)
+                return [this.botlibEmbeds.error("В данный момент уже проводится драфт. Пожалуйста, подождите.")];
+            else
+                this.draftEmbedObjectArray[this.draftEmbedObjectArray.indexOf(lastDEO)] = draftEmbedObject;
+        } else
+            this.draftEmbedObjectArray.push(draftEmbedObject);
+
         return this.draftEmbeds.draftTeamers(draftEmbedObject);
     }
 
-    @SignEmbed
-    getDraftBlind(interaction: CommandInteraction, draftEmbedObject: DraftEmbedObject): MessageEmbed{
+    async getDraftBlind(interaction: CommandInteraction, draftEmbedObject: DraftEmbedObject): Promise<MessageEmbed>{
         DraftEmbedObjectRoutine.setType(draftEmbedObject,"blind");
         if(draftEmbedObject.users.length == 0)
             return this.botlibEmbeds.error("Для выполнения этой команды вы должны находиться в канале.");
@@ -52,61 +66,73 @@ export class DraftService{
             return this.botlibEmbeds.error("Не более 16 лидеров для одного игрока.");
         if(draftEmbedObject.draft[0] == undefined)
             return this.botlibEmbeds.error("Недостаточно цивилизаций для такого драфта.");
-        if(this.lastDraftEmbedObject?.isProcessing && !draftEmbedObject.isProcessing)
-            return this.botlibEmbeds.error("В данный момент уже проводится драфт. Пожалуйста, подождите.");
 
+        let lastDEO: DraftEmbedObject | undefined = this.draftEmbedObjectArray.filter((x: DraftEmbedObject) => (x.guildID == draftEmbedObject.guildID))[0];
+        if(lastDEO) {
+            if(lastDEO.isProcessing)
+                return this.botlibEmbeds.error("В данный момент уже проводится драфт. Пожалуйста, подождите.");
+            else
+                this.draftEmbedObjectArray[this.draftEmbedObjectArray.indexOf(lastDEO)] = draftEmbedObject;
+        } else
+            this.draftEmbedObjectArray.push(draftEmbedObject);
+
+        draftEmbedObject.isProcessing = true;
         try{
-            this.lastDraftEmbedObject = draftEmbedObject;
-            this.lastDraftEmbedObject.isProcessing = true;
-            for(let i: number = 0; i < draftEmbedObject.users.length; i++)
-                draftEmbedObject.users[i].send({
+            for(let i: number = 0; i < draftEmbedObject.users.length; i++) {
+                let msg: Message = await draftEmbedObject.users[i].send({
                     embeds: [this.draftEmbeds.draftBlindPm(draftEmbedObject, i)],
                     components: this.draftButtons.blindPmRows(draftEmbedObject, i)
                 });
+                draftEmbedObject.pmArray.push(msg);
+            }
             return this.draftEmbeds.draftBlindProcessing(draftEmbedObject);
         } catch (e) {
-            delete this.lastDraftEmbedObject;
-            return this.botlibEmbeds.error("Один из игроков заблокировал бота!");
+            this.draftEmbedObjectArray.splice(this.draftEmbedObjectArray.indexOf(draftEmbedObject), 1)
+            return this.botlibEmbeds.error("Один из игроков заблокировал бота. Провести драфт невозможно.");
         }
     }
 
     getRedraft(interaction: CommandInteraction){
-        if(this.lastDraftEmbedObject == undefined){
+        let lastDEO: DraftEmbedObject | undefined = this.draftEmbedObjectArray.filter((x) => (x.guildID == interaction.guildId))[0];
+        if(!lastDEO) {
             interaction.reply({embeds: [this.botlibEmbeds.error("Драфта для редрафта не найдено.")]});
             return;
         }
-        if(this.lastDraftEmbedObject.isProcessing){
+        if(lastDEO.isProcessing){
             interaction.reply({embeds: [this.botlibEmbeds.error("В данный момент уже проводится драфт. Пожалуйста, подождите.")]});
             return;
         }
-        if(this.lastDraftEmbedObject.users.indexOf(interaction.user) == -1){
+        if(lastDEO.users.indexOf(interaction.user) == -1){
             interaction.reply({embeds: [this.botlibEmbeds.error("Вашего драфта для редрафта не найдено.")]});
             return;
         }
-        this.lastDraftEmbedObject.redraftMinAmount = Math.min(
-            this.lastDraftEmbedObject.users.length,
-            Math.floor(this.lastDraftEmbedObject.users.length/2)+1+this.lastDraftEmbedObject.redraftCounter
+
+        lastDEO.redraftMinAmount = Math.min(
+            lastDEO.users.length,
+            Math.floor(lastDEO.users.length/2)+1+lastDEO.redraftCounter
         );
-        this.lastDraftEmbedObject.interaction = interaction;
-        this.lastDraftEmbedObject.isProcessing = true;
+        lastDEO.interaction = interaction;
+        lastDEO.isProcessing = true;
 
         interaction.reply( {
-            embeds: [this.draftEmbeds.redraftProcessing(this.lastDraftEmbedObject as DraftEmbedObject)],
+            embeds: [this.draftEmbeds.redraftProcessing(lastDEO)],
             components: this.draftButtons.redraftButtons()
         });
     }
 
-    runRedraft(draftEmbedObject: DraftEmbedObject){
+    async runRedraft(draftEmbedObject: DraftEmbedObject){
+        let redraftEmbed: MessageEmbed = this.draftEmbeds.redraftProcessing(draftEmbedObject);
+        draftEmbedObject.redraftCounter += 1;
+        draftEmbedObject.redraftResult = -1;
         switch(draftEmbedObject.type){
             case "ffa":
-                draftEmbedObject.interaction.editReply({embeds: [this.getDraftFFA(draftEmbedObject.interaction, draftEmbedObject)], components: []});
-                return;
+                return await draftEmbedObject.interaction.editReply({embeds: [redraftEmbed, this.getDraftFFA(draftEmbedObject.interaction, draftEmbedObject)], components: []});
             case "teamers":
-                draftEmbedObject.interaction.editReply({embeds: this.getDraftTeamers(draftEmbedObject.interaction, draftEmbedObject), components: []});
-                return;
+                let teamersEmbeds: MessageEmbed[] = this.getDraftTeamers(draftEmbedObject.interaction, draftEmbedObject);
+                teamersEmbeds.unshift(redraftEmbed);
+                return await draftEmbedObject.interaction.editReply({embeds: teamersEmbeds, components: []});
             case "blind":
-                draftEmbedObject.interaction.editReply({embeds: [this.getDraftBlind(draftEmbedObject.interaction, draftEmbedObject)], components: []});
-                return;
+                return await draftEmbedObject.interaction.editReply({embeds: [redraftEmbed, await this.getDraftBlind(draftEmbedObject.interaction, draftEmbedObject)], components: this.draftButtons.blindDelete()});
         }
     }
 }

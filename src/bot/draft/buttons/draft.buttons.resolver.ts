@@ -33,7 +33,12 @@ export abstract class DraftButtonsResolver{
     async blindDraftButton(interaction: ButtonInteraction) {
         try {
             let msg = interaction.message as Message;
-            let draftEmbedObject = this.draftService.lastDraftEmbedObject as DraftEmbedObject;
+
+            // Потенциально опасный код,
+            // потому что объект с нужной
+            // игрой может быть не найден
+            let draftEmbedObject: DraftEmbedObject = this.draftService.draftEmbedObjectArray.filter((x: DraftEmbedObject) => (x.isProcessing) && (x.users.indexOf(interaction.user) != -1))[0];
+
             let userNumber: number = draftEmbedObject.users.indexOf(interaction.user);
             let civilizationNumber: number = Number(interaction.customId.slice(interaction.customId.indexOf("-") + 1));
 
@@ -41,25 +46,31 @@ export abstract class DraftButtonsResolver{
             draftEmbedObject.usersReadyBlind[userNumber] = true;
 
             await msg.edit({embeds: [this.draftService.draftEmbeds.draftBlindPmReady(draftEmbedObject, userNumber)], components: []});
-            if((draftEmbedObject.usersReadyBlind.filter(x => x)).length == draftEmbedObject.users.length)
+            if((draftEmbedObject.usersReadyBlind.filter(x => x)).length == draftEmbedObject.users.length) {
                 draftEmbedObject.isProcessing = false;
-            await draftEmbedObject.interaction.editReply({embeds: [this.draftService.draftEmbeds.draftBlindProcessing(draftEmbedObject)]});
+                return await draftEmbedObject.interaction.editReply({embeds: [this.draftService.draftEmbeds.draftBlindProcessing(draftEmbedObject)], components: []});
+            }
+            return await draftEmbedObject.interaction.editReply({embeds: [this.draftService.draftEmbeds.draftBlindProcessing(draftEmbedObject)]});
         } catch (buttonError) {
-            return;
+            let msg = interaction.message as Message;
+            if(msg)
+                await msg.delete();
         }
     }
 
     @ButtonComponent("redraftButton-yes")
-    redraftButtonYes(interaction: ButtonInteraction){
+    async redraftButtonYes(interaction: ButtonInteraction){
         try{
             let msg = interaction.message as Message;
-            let draftEmbedObject = this.draftService.lastDraftEmbedObject as DraftEmbedObject;
+
+            // Потенциально опасный код,
+            // потому что объект с нужной
+            // игрой может быть не найден
+            let draftEmbedObject: DraftEmbedObject = this.draftService.draftEmbedObjectArray.filter((x: DraftEmbedObject) => (x.isProcessing) && (x.users.indexOf(interaction.user) != -1))[0];
             let userNumber: number = draftEmbedObject.users.indexOf(interaction.user);
 
-            if(userNumber == -1){
-                interaction.reply({embeds: [this.draftService.botlibEmbeds.error("Вы не были участником игры, в голосовании которой вы пытаетесь принять участие.")], ephemeral: true});
-                return;
-            }
+            if(userNumber == -1)
+                return interaction.reply({embeds: [this.draftService.botlibEmbeds.error("Вы не были участником игры, в голосовании которой вы пытаетесь принять участие.")], ephemeral: true});
 
             draftEmbedObject.redraftStatus[userNumber] = 1;
             if(draftEmbedObject.redraftStatus.filter(x => (x == 1)).length >= draftEmbedObject.redraftMinAmount)
@@ -67,12 +78,10 @@ export abstract class DraftButtonsResolver{
 
             if(draftEmbedObject.redraftResult == 1){
                 draftEmbedObject.isProcessing = false;
-                msg.edit({ embeds: [this.draftService.draftEmbeds.redraftProcessing(draftEmbedObject)], components: [] });
-                draftEmbedObject.redraftCounter += 1;
-                draftEmbedObject.redraftResult = -1;
-                setTimeout((): void => {this.draftService.runRedraft(draftEmbedObject);}, 3000);
+                await msg.edit({ embeds: [this.draftService.draftEmbeds.redraftProcessing(draftEmbedObject)], components: [] });
+                setTimeout(async () => {await this.draftService.runRedraft(draftEmbedObject);}, 3000);
             } else
-                msg.edit({ embeds: [this.draftService.draftEmbeds.redraftProcessing(draftEmbedObject)] });
+                await msg.edit({ embeds: [this.draftService.draftEmbeds.redraftProcessing(draftEmbedObject)] });
             return;
         } catch (buttonError){
             return;
@@ -80,29 +89,44 @@ export abstract class DraftButtonsResolver{
     }
 
     @ButtonComponent("redraftButton-no")
-    redraftButtonNo(interaction: ButtonInteraction){
+    async redraftButtonNo(interaction: ButtonInteraction){
         try{
             let msg = interaction.message as Message;
-            let draftEmbedObject = this.draftService.lastDraftEmbedObject as DraftEmbedObject;
+
+            // Потенциально опасный код,
+            // потому что объект с нужной
+            // игрой может быть не найден
+            let draftEmbedObject: DraftEmbedObject = this.draftService.draftEmbedObjectArray.filter((x: DraftEmbedObject) => (x.isProcessing) && (x.users.indexOf(interaction.user) != -1))[0];
             let userNumber: number = draftEmbedObject.users.indexOf(interaction.user);
 
-            if(userNumber == -1){
-                interaction.reply({embeds: [this.draftService.botlibEmbeds.error("Вы не принимаете участие в данной игре.")], ephemeral: true});
-                return;
-            }
+            if(userNumber == -1)
+                return interaction.reply({embeds: [this.draftService.botlibEmbeds.error("Вы не принимаете участие в данной игре.")], ephemeral: true});
 
             draftEmbedObject.redraftStatus[userNumber] = 0;
             if(draftEmbedObject.redraftStatus.filter(x => (x == 0)).length >= draftEmbedObject.users.length-draftEmbedObject.redraftMinAmount+1)
                 draftEmbedObject.redraftResult = 0;
 
             if(draftEmbedObject.redraftResult == 0){
-                msg.edit({ embeds: [this.draftService.draftEmbeds.redraftProcessing(draftEmbedObject)], components: [] });
-                delete this.draftService.lastDraftEmbedObject;
+                await msg.edit({ embeds: [this.draftService.draftEmbeds.redraftProcessing(draftEmbedObject)], components: [] });
+                this.draftService.draftEmbedObjectArray.splice(this.draftService.draftEmbedObjectArray.indexOf(draftEmbedObject), 1)
             } else
-                msg.edit({ embeds: [this.draftService.draftEmbeds.redraftProcessing(draftEmbedObject)] });
+                await msg.edit({ embeds: [this.draftService.draftEmbeds.redraftProcessing(draftEmbedObject)] });
             return;
         } catch (buttonError){
             return;
         }
+    }
+
+    @ButtonComponent("blindDelete")
+    async blindDelete(interaction: ButtonInteraction){
+        let draftEmbedObject: DraftEmbedObject = this.draftService.draftEmbedObjectArray.filter((x: DraftEmbedObject) => (x.isProcessing) && (x.users.indexOf(interaction.user) != -1))[0];
+        if(!draftEmbedObject)
+            return;
+        if((draftEmbedObject.interaction.user != interaction.user) || (draftEmbedObject.interaction.guildId != interaction.guildId))
+            return;
+        this.draftService.draftEmbedObjectArray.splice(this.draftService.draftEmbedObjectArray.indexOf(draftEmbedObject), 1);
+        await draftEmbedObject.interaction.deleteReply();
+        for(let i in draftEmbedObject.pmArray)
+            await draftEmbedObject.pmArray[i].delete();
     }
 }

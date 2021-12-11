@@ -1,11 +1,15 @@
-import {MessageEmbed} from "discord.js";
+import {MessageEmbed, User} from "discord.js";
 
 export class ConnectionEmbeds{
-    link(steamLobbyURL: string, isLicense: boolean): MessageEmbed{
-        return new MessageEmbed()
+    link(steamLobbyURL: string, isLicense: boolean, author: User, description: string): MessageEmbed{
+        let embedMsg: MessageEmbed = new MessageEmbed()
             .setTitle("🌐 Ссылка на лобби")
             .setColor("#3B88C3")
-            .setDescription(`${isLicense ? "👑" : "🏴‍☠️"} Лобби для ${isLicense ? "лицензионной" : "пиратской"} версии игры.\n**${steamLobbyURL}**`);
+            .setDescription(`${isLicense ? "👑" : "🏴‍☠️"} Лобби для ${isLicense ? "лицензионной" : "пиратской"} версии игры.\n**${steamLobbyURL}**`)
+            .setFooter(author.tag, author.avatarURL() || undefined);
+        if(description != "")
+            embedMsg.addField("❗ Дополнительное описание:", "\t" + description)
+        return embedMsg;
     }
 
     connect(): MessageEmbed{

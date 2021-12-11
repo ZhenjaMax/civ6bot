@@ -20,7 +20,7 @@ export class ConnectionService{
 
     // закрытый профиль игнорируется, данные берутся
     // Нужно проверять игру 480 / 289070
-    async getLobbyLink(interaction: CommandInteraction){
+    async getLobbyLink(interaction: CommandInteraction, description: string){
         let userData: any = await this.userSteamService.getOne(interaction.user.id);
 
         if(!userData)
@@ -40,7 +40,7 @@ export class ConnectionService{
 
         let steamLobbyURL: string = `steam://joinlobby/${steamData.gameid}/${steamData.lobbysteamid}/${steamData.steamid}`;
         await interaction.reply({
-            embeds: [this.connectionEmbeds.link(steamLobbyURL, isLicense)],
+            embeds: [this.connectionEmbeds.link(steamLobbyURL, isLicense, interaction.user, description)],
             // Не работает
             // не поддерживает URI steam://
             // components: this.connectionButtons.linkButton(steamLobbyURL, isLicense)

@@ -2,11 +2,13 @@ import {Discord, Slash, SlashGroup, SlashOption} from "discordx";
 import {CommandInteraction} from "discord.js";
 import {DraftService} from "./draft.service";
 import {DraftEmbedObject} from "./draft.models"
+import {DraftButtons} from "./buttons/draft.buttons";
 
 @Discord()
 @SlashGroup("draft", "Драфт для начала игры")
 export abstract class DraftCommands {
     draftService: DraftService = DraftService.Instance;
+    draftButtons: DraftButtons = new DraftButtons();
 
     @Slash("ffa", { description: "Драфт цивилизаций для FFA" })
     async draftFFA(
@@ -33,7 +35,10 @@ export abstract class DraftCommands {
         @SlashOption("баны", { required: false }) bans: string = "",
         interaction: CommandInteraction
     ) {
-        await interaction.reply({ embeds: [this.draftService.getDraftBlind(interaction, new DraftEmbedObject(interaction, amount, bans))] });
+        await interaction.reply({
+            embeds: [await this.draftService.getDraftBlind(interaction, new DraftEmbedObject(interaction, amount, bans))],
+            components: this.draftButtons.blindDelete()
+        });
     }
 }
 

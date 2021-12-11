@@ -94,8 +94,10 @@ export class DraftEmbeds{
             fieldString += `${draftEmbedObject.draft[userNumber][i]}\n`;
         return new MessageEmbed()
             .setAuthor("Выбор цивилизации для драфта вслепую")
-            .setDescription("Вам предлагается тайно выбрать одну из цивилизаций, перечисленных ниже.\n❗ **Свап цивилизациями запрещён при драфте вслепую.**")
-            .addField("🤔 Чтобы выбрать, нажмите на одну из кнопок ниже.", fieldString)
+            .setDescription("\n❗ **Свап цивилизациями запрещён при драфте вслепую.**")
+            .addField(
+                "🤔 **Статус: в процессе выбора.**",
+                "Вам предлагается тайно выбрать одну из цивилизаций, перечисленных ниже. Для этого нажмите на одну из кнопок ниже.\n**Учтите, что вы не сможете перевыбрать. Будьте внимательны!**\n\n" + fieldString)
             .setColor("#FFFFFF");
     }
 
@@ -103,7 +105,7 @@ export class DraftEmbeds{
         return new MessageEmbed()
             .setAuthor("Выбор цивилизации для драфта вслепую")
             .setDescription("❗ **Свап цивилизациями запрещён при драфте вслепую.**")
-            .addField("🗿 Решение принято.", draftEmbedObject.draft[userNumber][0])
+            .addField("🗿 **Статус: решение принято.**", "Теперь возвращайтесь в исходный текстовый канал и ожидайте результата.\n\nВы выбрали — " + draftEmbedObject.draft[userNumber][0])
             .setColor("#FFFFFF");
     }
 
@@ -165,13 +167,28 @@ export class DraftEmbeds{
         }
         let authorUser: User = draftEmbedObject.interaction.user as User;
         let titleString: string = `🔄 Редрафт #${draftEmbedObject.redraftCounter+1} ${draftEmbedObject.type == "ffa" ? "FFA" : (draftEmbedObject.type == "teamers" ? "Teamers" : "вслепую" )}`;
+
+        let yesRedraft: string = "", noRedraft: string = "", abstainedRedraft = "";
+        for(let i in draftEmbedObject.redraftStatus)
+            switch (draftEmbedObject.redraftStatus[i]) {
+                case -1:
+                    abstainedRedraft += `${draftEmbedObject.users[i].toString()}\n`
+                    break;
+                case 0:
+                    noRedraft += `${draftEmbedObject.users[i].toString()}\n`
+                    break;
+                case 1:
+                    yesRedraft += `${draftEmbedObject.users[i].toString()}\n`
+                    break;
+            }
         embedMsg
             .setTitle(titleString)
             .setColor("#b0b0b0")
             .setFooter(authorUser.tag, authorUser.avatarURL() || undefined)
             .setDescription(descriptionString)
-            .addField(`${this.botlibEmojis.yes} **За**`, `${draftEmbedObject.redraftStatus.filter(x => (x==1)).length}`, true)
-            .addField(`${this.botlibEmojis.no} **Против**`, `${draftEmbedObject.redraftStatus.filter(x => (x==0)).length}`, true);
+            .addField(`${this.botlibEmojis.yes} **За**`, `**${draftEmbedObject.redraftStatus.filter(x => (x==1)).length}**\n${yesRedraft}`, true)
+            .addField(`🤔 **Не проголосовали**`, `**${draftEmbedObject.redraftStatus.filter(x => (x==-1)).length}**\n${abstainedRedraft}`, true)
+            .addField(`${this.botlibEmojis.no} **Против**`, `**${draftEmbedObject.redraftStatus.filter(x => (x==0)).length}**\n${noRedraft}`, true);
         return embedMsg;
     }
 }

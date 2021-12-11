@@ -1,8 +1,9 @@
-import {CommandInteraction, GuildChannel, GuildMember, User} from "discord.js";
+import {CommandInteraction, GuildChannel, GuildMember, Message, User} from "discord.js";
 
 export class DraftEmbedObject {
     type: "ffa" | "teamers" | "blind" | undefined;
     isProcessing: boolean = false;
+    guildID: string;
 
     interaction: CommandInteraction;
     amount: number = 0;
@@ -17,6 +18,7 @@ export class DraftEmbedObject {
 
     users: User[] = [];
     usersReadyBlind: boolean[] = [];
+    pmArray: Message[] = [];
 
     redraftCounter: number = 0;
     redraftMinAmount: number = 0;
@@ -25,6 +27,7 @@ export class DraftEmbedObject {
 
     constructor(interaction: CommandInteraction, amount: number, strBans: string){
         this.interaction = interaction;
+        this.guildID = interaction.guildId;
         this.amount = amount;
         this.rawBans = strBans
             .toLowerCase()

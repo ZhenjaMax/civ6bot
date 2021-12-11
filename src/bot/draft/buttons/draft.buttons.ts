@@ -45,4 +45,19 @@ export class DraftButtons{
         rows.push(new MessageActionRow().addComponents(buttonArray));
         return rows;
     }
+
+    blindDelete(): MessageActionRow[]{
+        let rows: MessageActionRow[] = [];
+        let buttonArray: MessageButton[] = [];
+        buttonArray.push(
+            new MessageButton()
+                .setEmoji(this.botlibEmojis.yes)
+                .setLabel("Удалить (для автора)")
+                .setStyle("DANGER")
+                .setCustomId("blindDelete")
+                .setEmoji(this.botlibEmojis.no)
+        );
+        rows.push(new MessageActionRow().addComponents(buttonArray));
+        return rows;
+    }
 }
