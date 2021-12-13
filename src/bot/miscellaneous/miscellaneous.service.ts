@@ -20,7 +20,7 @@ export class MiscellaneousService {
     async getRandomCat(interaction: CommandInteraction){
         let catData = await fetch(this.miscellaneousConfig.randomCatURL);
         catData = await catData.json();
-        let catURL: string = (Math.random() < 0.01) ? "https://i.imgur.com/9Wpk54U.png" : catData.file;
+        let catURL: string = (Math.random() < 0.075) ? "https://i.imgur.com/9Wpk54U.png" : catData.file;
         await interaction.reply({embeds: [this.miscellaneousEmbeds.catImage(interaction.user, catURL)]});
     }
 

@@ -18,4 +18,10 @@ export class BotlibEmbeds{
             .setColor("#FF0000")
             .addField("Ошибка!", errorDescription);
     }
+
+    notify(notifyDescription: string): MessageEmbed{
+        return new MessageEmbed()
+            .setColor("#66FF66")
+            .addField("Уведомление", notifyDescription);
+    }
 }

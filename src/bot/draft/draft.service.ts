@@ -63,7 +63,9 @@ export class DraftService{
         if(draftEmbedObject.users.length == 0)
             return this.botlibEmbeds.error("Для выполнения этой команды вы должны находиться в канале.");
         if(draftEmbedObject.amount > 16)
-            return this.botlibEmbeds.error("Не более 16 лидеров для одного игрока.");
+            return this.botlibEmbeds.error("Не более 16 лидеров для игрока.");
+        if(draftEmbedObject.amount < 2)
+            return this.botlibEmbeds.error("Хотя бы 2 лидера для игрока.");
         if(draftEmbedObject.draft[0] == undefined)
             return this.botlibEmbeds.error("Недостаточно цивилизаций для такого драфта.");
 
@@ -136,7 +138,6 @@ export class DraftService{
         }
     }
 }
-
 
 class DraftEmbedObjectRoutine{
     static draftConfig: DraftConfig = new DraftConfig();
