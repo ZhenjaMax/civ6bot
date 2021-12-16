@@ -10,12 +10,8 @@ export abstract class ConnectionCommands{
     async link(
         @SlashOption("описание", { required: false }) description: string = "",
         interaction: CommandInteraction
-    ){
-        await this.connectionService.getLobbyLink(interaction, description);
-    }
+    ){ await this.connectionService.getLobbyLink(interaction, description); }
 
     @Slash("connect", {description: "Подключить Steam к профилю"})
-    async connect(interaction: CommandInteraction){
-        await this.connectionService.getConnectLink(interaction);
-    }
+    async connect(interaction: CommandInteraction){ await this.connectionService.getConnect(interaction); }
 }

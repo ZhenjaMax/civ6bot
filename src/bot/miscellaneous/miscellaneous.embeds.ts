@@ -1,25 +1,23 @@
-import { MessageEmbed, User } from "discord.js";
+import { MessageEmbed } from "discord.js";
 import { BotlibRandom } from "../../botlib/botlib.random";
 
 export class MiscellaneousEmbeds {
-    catImage(author: User, catURL: string): MessageEmbed {
+    catImage(catURL: string): MessageEmbed {
         let catEmojis = ["😼", "😹", "🙀", "😾", "😿", "😻", "😺", "😸", "😽", "🐱", "🐈"];
         return new MessageEmbed()
             .setColor(BotlibRandom.getRandomHexBrightString())
             .setTitle(`${catEmojis[Math.floor(Math.random()*catEmojis.length)]} Случайный кот!`)
             .setDescription("Какой же он милый!")
             .setImage(catURL)
-            .setFooter(author.tag, author.avatarURL() || undefined);
     }
 
-    dogImage(author: User, dogURL: string): MessageEmbed {
+    dogImage(dogURL: string): MessageEmbed {
         let dogEmojis = ["🐶", "🦮", "🐕‍🦺", "🐕", "🐺"];
         return new MessageEmbed()
             .setColor(BotlibRandom.getRandomHexBrightString())
             .setTitle(`${dogEmojis[Math.floor(Math.random()*dogEmojis.length)]} Случайный пёс!`)
             .setDescription("Какой же он крутой!")
             .setImage(dogURL)
-            .setFooter(author.tag, author.avatarURL() || undefined);
     }
 
     heads(): MessageEmbed {

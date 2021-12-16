@@ -2,7 +2,7 @@ import {CommandInteraction, MessageEmbed} from "discord.js";
 const fetch = require('node-fetch');
 
 import {MiscellaneousEmbeds } from "./miscellaneous.embeds";
-import {BotlibEmbeds, SignEmbed} from "../../botlib/botlib.embeds";
+import {BotlibEmbeds, signEmbed} from "../../botlib/botlib.embeds";
 import {MiscellaneousConfig} from "./miscellaneous.config";
 
 export class MiscellaneousService {
@@ -16,30 +16,45 @@ export class MiscellaneousService {
         return this._instance || (this._instance = new this());
     }
 
-    /* Невозможно использовать декоратор @SignEmbed */
     async getRandomCat(interaction: CommandInteraction){
-        let catData = await fetch(this.miscellaneousConfig.randomCatURL);
-        catData = await catData.json();
-        let catURL: string = (Math.random() < 0.075) ? "https://i.imgur.com/9Wpk54U.png" : catData.file;
-        await interaction.reply({embeds: [this.miscellaneousEmbeds.catImage(interaction.user, catURL)]});
+        try {
+            let catData = await fetch(this.miscellaneousConfig.randomCatURL);
+            catData = await catData.json();
+            let catURL: string = (Math.random() < this.miscellaneousConfig.catBambrChance) ? this.miscellaneousConfig.catBambrURL : catData.file;
+            return await interaction.reply({
+                embeds: [this.miscellaneousEmbeds.catImage(catURL)]
+            });
+        } catch (catError) {
+            return await interaction.reply({embeds: this.botlibEmbeds.error("Сервер не предоставил изображение.")});
+        }
     }
 
     /* Невозможно использовать декоратор @SignEmbed */
     async getRandomDog(interaction: CommandInteraction){
-        let dogData = await fetch(this.miscellaneousConfig.randomDogURL);
-        dogData = await dogData.json();
-        let dogURL: string = dogData.message;
-        await interaction.reply({embeds: [this.miscellaneousEmbeds.dogImage(interaction.user, dogURL)]});
+        try {
+            let dogData = await fetch(this.miscellaneousConfig.randomDogURL);
+            dogData = await dogData.json();
+            let dogURL: string = dogData.message;
+            await interaction.reply({
+                embeds: [this.miscellaneousEmbeds.dogImage(dogURL)]
+            });
+        } catch (dogError) {
+            return await interaction.reply({embeds: this.botlibEmbeds.error("Сервер не предоставил изображение.")});
+        }
     }
 
-    @SignEmbed
-    getRandom(interaction: CommandInteraction, n: number): MessageEmbed{
-        if(n < 2 || n > 100) return this.botlibEmbeds.error("Введите целое число от 2 до 100.");
-        return this.miscellaneousEmbeds.random(n, 1+Math.floor(Math.random()*n))
+    async getRandom(interaction: CommandInteraction, n: number){
+        if(n < this.miscellaneousConfig.randomMin || n > this.miscellaneousConfig.randomMax)
+            return await interaction.reply({embeds: this.botlibEmbeds.error(`Введите целое число от ${this.miscellaneousConfig.randomMin} до ${this.miscellaneousConfig.randomMax}.`)});
+        return await interaction.reply({
+            embeds: signEmbed(interaction, this.miscellaneousEmbeds.random(n, 1+Math.floor(Math.random()*n)))
+        });
     }
 
-    @SignEmbed
-    flipCoin(): MessageEmbed{
-        return Math.random() >= 0.5 ? this.miscellaneousEmbeds.heads() : this.miscellaneousEmbeds.tails();
+    async flipCoin(interaction: CommandInteraction){
+        let msg: MessageEmbed = Math.random() >= 0.5 ? this.miscellaneousEmbeds.heads() : this.miscellaneousEmbeds.tails() as MessageEmbed;
+        return await interaction.reply({
+            embeds: signEmbed(interaction, msg)
+        });
     }
 }

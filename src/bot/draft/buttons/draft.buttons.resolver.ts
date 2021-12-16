@@ -80,7 +80,7 @@ export abstract class DraftButtonsResolver{
             let userNumber: number = draftEmbedObject.users.indexOf(interaction.user);
 
             if(userNumber == -1)
-                return interaction.reply({embeds: [this.draftService.botlibEmbeds.error("Вы не были участником игры, в голосовании которой вы пытаетесь принять участие.")], ephemeral: true});
+                return interaction.reply({embeds: this.draftService.botlibEmbeds.error("Вы не были участником игры, в голосовании которой вы пытаетесь принять участие."), ephemeral: true});
 
             draftEmbedObject.redraftStatus[userNumber] = 1;
             if(draftEmbedObject.redraftStatus.filter(x => (x == 1)).length >= draftEmbedObject.redraftMinAmount)
@@ -92,7 +92,7 @@ export abstract class DraftButtonsResolver{
                 setTimeout(async () => {await this.draftService.runRedraft(draftEmbedObject);}, 3000);
             } else
                 await msg.edit({ embeds: [this.draftService.draftEmbeds.redraftProcessing(draftEmbedObject)] });
-            await interaction.reply({embeds: [this.botlibEmbeds.notify(`Вы поставили голос ${this.botlibEmojis.yes} за редрафт.`)], ephemeral: true});
+            await interaction.reply({embeds: this.botlibEmbeds.notify(`Вы поставили голос ${this.botlibEmojis.yes} за редрафт.`), ephemeral: true});
             return;
         } catch (buttonError){
             return;
@@ -111,7 +111,7 @@ export abstract class DraftButtonsResolver{
             let userNumber: number = draftEmbedObject.users.indexOf(interaction.user);
 
             if(userNumber == -1)
-                return interaction.reply({embeds: [this.draftService.botlibEmbeds.error("Вы не принимаете участие в данной игре.")], ephemeral: true});
+                return interaction.reply({embeds: this.draftService.botlibEmbeds.error("Вы не принимаете участие в данной игре."), ephemeral: true});
 
             draftEmbedObject.redraftStatus[userNumber] = 0;
             if(draftEmbedObject.redraftStatus.filter(x => (x == 0)).length >= draftEmbedObject.users.length-draftEmbedObject.redraftMinAmount+1)
@@ -122,7 +122,7 @@ export abstract class DraftButtonsResolver{
                 this.draftService.draftEmbedObjectArray.splice(this.draftService.draftEmbedObjectArray.indexOf(draftEmbedObject), 1)
             } else
                 await msg.edit({ embeds: [this.draftService.draftEmbeds.redraftProcessing(draftEmbedObject)] });
-            await interaction.reply({embeds: [this.botlibEmbeds.notify(`Вы поставили голос ${this.botlibEmojis.no} против редрафта.`)], ephemeral: true});
+            await interaction.reply({embeds: this.botlibEmbeds.notify(`Вы поставили голос ${this.botlibEmojis.no} против редрафта.`), ephemeral: true});
             return;
         } catch (buttonError){
             return;
@@ -133,9 +133,9 @@ export abstract class DraftButtonsResolver{
     async blindDelete(interaction: ButtonInteraction){
         let draftEmbedObject: DraftEmbedObject = this.draftService.draftEmbedObjectArray.filter((x: DraftEmbedObject) => (x.isProcessing) && (x.users.indexOf(interaction.user) != -1))[0];
         if(!draftEmbedObject)
-            return interaction.reply({embeds: [this.botlibEmbeds.error("Вы не являетесь автором драфта.")], ephemeral: true});
+            return interaction.reply({embeds: this.botlibEmbeds.error("Вы не являетесь автором драфта."), ephemeral: true});
         if((draftEmbedObject.interaction.user != interaction.user) || (draftEmbedObject.interaction.guildId != interaction.guildId))
-            return interaction.reply({embeds: [this.botlibEmbeds.error("Вы не являетесь автором драфта.")], ephemeral: true});
+            return interaction.reply({embeds: this.botlibEmbeds.error("Вы не являетесь автором драфта."), ephemeral: true});
         this.draftService.draftEmbedObjectArray.splice(this.draftService.draftEmbedObjectArray.indexOf(draftEmbedObject), 1);
         await draftEmbedObject.interaction.deleteReply();
         for(let i in draftEmbedObject.pmArray)

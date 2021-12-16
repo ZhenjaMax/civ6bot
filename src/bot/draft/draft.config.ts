@@ -1,5 +1,5 @@
 export class DraftConfig{
-    static teamersThumbnailsURL: string[] = [
+    teamersThumbnailsURL: string[] = [
         "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d1/Antu_flag-red.svg/768px-Antu_flag-red.svg.png",
         "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Antu_flag-blue.svg/768px-Antu_flag-blue.svg.png",
         "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fc/Antu_flag-green.svg/768px-Antu_flag-green.svg.png",
@@ -86,4 +86,10 @@ export class DraftConfig{
         [28, 55],   // Монголия (2)
         [20, 54],   // Китай (2)
     ];
+    ffaCivilizationMin: number = 1;
+    ffaCivilizationMax: number = 16;
+    teamersCommandsMin: number = 2;
+    teamersCommandsMax: number = this.teamersThumbnailsURL.length;
+    blindCivilizationMin: number = 2;
+    blindCivilizationMax: number = 16;
 }

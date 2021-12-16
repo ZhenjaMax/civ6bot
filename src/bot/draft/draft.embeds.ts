@@ -6,6 +6,7 @@ import {BotlibEmojis} from "../../botlib/botlib.emojis";
 
 export class DraftEmbeds{
     botlibEmojis: BotlibEmojis = new BotlibEmojis();
+    draftConfig: DraftConfig = new DraftConfig();
 
     protected getBaseDescriptionString(draftEmbedObject: DraftEmbedObject): string{
         let bansString: string = "";
@@ -82,7 +83,7 @@ export class DraftEmbeds{
             let embedMsg: MessageEmbed = new MessageEmbed()
                 .setColor(hexColor)
                 .setDescription(teamersDraftString)
-                .setThumbnail(DraftConfig.teamersThumbnailsURL[i]);
+                .setThumbnail(this.draftConfig.teamersThumbnailsURL[i]);
             embedMsgArray.push(embedMsg);
         }
         return embedMsgArray;
