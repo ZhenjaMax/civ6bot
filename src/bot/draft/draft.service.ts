@@ -1,6 +1,6 @@
 import {CommandInteraction, Message, MessageEmbed} from "discord.js";
 import {DraftEmbedObject} from "./draft.models"
-import {BotlibEmbeds, SignEmbed} from "../../botlib/botlib.embeds";
+import {BotlibEmbeds, signEmbed} from "../../botlib/botlib.embeds";
 import {DraftEmbeds} from "./draft.embeds";
 import {DraftConfig} from "./draft.config";
 import {DraftButtons} from "./buttons/draft.buttons";
@@ -8,75 +8,96 @@ import {DraftButtons} from "./buttons/draft.buttons";
 // Singleton
 export class DraftService{
     draftEmbedObjectArray: DraftEmbedObject[] = [];
-
     draftEmbeds: DraftEmbeds = new DraftEmbeds();
     botlibEmbeds: BotlibEmbeds = new BotlibEmbeds();
+    draftConfig: DraftConfig = new DraftConfig();
     draftButtons: DraftButtons = new DraftButtons();
+    draftEmbedObjectRoutine: DraftEmbedObjectRoutine = new DraftEmbedObjectRoutine();
+
     private static _instance: DraftService;
     private constructor() {}
     public static get Instance(){
         return this._instance || (this._instance = new this());
     }
 
-    @SignEmbed
-    getDraftFFA(interaction: CommandInteraction, draftEmbedObject: DraftEmbedObject): MessageEmbed {
-        DraftEmbedObjectRoutine.setType(draftEmbedObject,"ffa");
-        if(draftEmbedObject.users.length == 0)
-            return this.botlibEmbeds.error("Для выполнения этой команды вы должны находиться в канале.");
-        if(draftEmbedObject.amount > 16)
-            return this.botlibEmbeds.error("Не более 16 лидеров для одного игрока.");
-        if(draftEmbedObject.draft[0] == undefined)
-            return this.botlibEmbeds.error("Недостаточно цивилизаций для такого драфта.");
-
-        let lastDEO: DraftEmbedObject | undefined = this.draftEmbedObjectArray.filter((x: DraftEmbedObject) => (x.guildID == draftEmbedObject.guildID))[0];
+    private async checkDEO(DEO: DraftEmbedObject): Promise<boolean>{
+        if(DEO.users.length == 0) {
+            await DEO.interaction.reply({embeds: this.botlibEmbeds.error("Для выполнения этой команды вы должны находиться в голосовом канале.")});
+            return false;
+        }
+        switch(DEO.type) {
+            case "ffa":
+                if(DEO.amount < this.draftConfig.ffaCivilizationMin || DEO.amount > this.draftConfig.ffaCivilizationMax) {
+                    await DEO.interaction.reply({embeds: this.botlibEmbeds.error(`Поддерживается от ${this.draftConfig.ffaCivilizationMin} до ${this.draftConfig.ffaCivilizationMax} лидеров для одного игрока.`)});
+                    return false;
+                }
+                break;
+            case "teamers":
+                if(DEO.amount < this.draftConfig.teamersCommandsMin || DEO.amount > this.draftConfig.teamersCommandsMax) {
+                    await DEO.interaction.reply({embeds: this.botlibEmbeds.error(`Поддерживается от ${this.draftConfig.teamersCommandsMin} до ${this.draftConfig.teamersCommandsMax} команд.`)});
+                    return false
+                }
+                break;
+            case "blind":
+                if(DEO.amount < this.draftConfig.blindCivilizationMin || DEO.amount > this.draftConfig.blindCivilizationMax){
+                    await DEO.interaction.reply( {embeds: this.botlibEmbeds.error(`Поддерживается от ${this.draftConfig.blindCivilizationMin} до ${this.draftConfig.blindCivilizationMax} лидеров для одного игрока.`)});
+                    return false;
+                }
+                break;
+        }
+        if(DEO.draft[0] == undefined) {
+            await DEO.interaction.reply({embeds: this.botlibEmbeds.error("Недостаточно цивилизаций для такого драфта.")});
+            return false;
+        }
+        let lastDEO: DraftEmbedObject | undefined = this.draftEmbedObjectArray.filter((x: DraftEmbedObject) => (x.guildID == DEO.guildID))[0];
         if(lastDEO) {
-            if(lastDEO.isProcessing)
-                return this.botlibEmbeds.error("В данный момент уже проводится драфт. Пожалуйста, подождите.");
-            else
-                this.draftEmbedObjectArray[this.draftEmbedObjectArray.indexOf(lastDEO)] = draftEmbedObject;
+            if(lastDEO.isProcessing) {
+                await DEO.interaction.reply({embeds: this.botlibEmbeds.error("В данный момент уже проводится драфт. Пожалуйста, подождите.")});
+                return false;
+            }
+            this.draftEmbedObjectArray[this.draftEmbedObjectArray.indexOf(lastDEO)] = DEO;
         } else
-            this.draftEmbedObjectArray.push(draftEmbedObject);
-
-        return this.draftEmbeds.draftFFA(draftEmbedObject);
+            this.draftEmbedObjectArray.push(DEO);
+        return true;
     }
 
-    @SignEmbed
-    getDraftTeamers(interaction: CommandInteraction, draftEmbedObject: DraftEmbedObject): MessageEmbed[]{
-        DraftEmbedObjectRoutine.setType(draftEmbedObject,"teamers");
-        if(draftEmbedObject.amount < 2 || draftEmbedObject.amount > 6)
-            return [this.botlibEmbeds.error("Поддерживается от 2 до 6 команд.")];
-
-        let lastDEO: DraftEmbedObject | undefined = this.draftEmbedObjectArray.filter((x: DraftEmbedObject) => (x.guildID == draftEmbedObject.guildID))[0];
-        if(lastDEO) {
-            if(lastDEO.isProcessing)
-                return [this.botlibEmbeds.error("В данный момент уже проводится драфт. Пожалуйста, подождите.")];
-            else
-                this.draftEmbedObjectArray[this.draftEmbedObjectArray.indexOf(lastDEO)] = draftEmbedObject;
-        } else
-            this.draftEmbedObjectArray.push(draftEmbedObject);
-
-        return this.draftEmbeds.draftTeamers(draftEmbedObject);
+    private async checkRedraftDEO(lastDEO: DraftEmbedObject, interaction: CommandInteraction): Promise<boolean>{
+        if(!lastDEO) {
+            await interaction.reply({embeds: this.botlibEmbeds.error("Драфта для редрафта не найдено.")});
+            return false;
+        }
+        if(lastDEO.isProcessing) {
+            await interaction.reply({embeds: this.botlibEmbeds.error("В данный момент уже проводится драфт. Пожалуйста, подождите.")});
+            return false;
+        }
+        if(lastDEO.users.indexOf(interaction.user) == -1) {
+            await interaction.reply({embeds: this.botlibEmbeds.error("Вашего драфта для редрафта не найдено.")});
+            return false;
+        }
+        return true;
     }
 
-    async getDraftBlind(interaction: CommandInteraction, draftEmbedObject: DraftEmbedObject): Promise<MessageEmbed>{
-        DraftEmbedObjectRoutine.setType(draftEmbedObject,"blind");
-        if(draftEmbedObject.users.length == 0)
-            return this.botlibEmbeds.error("Для выполнения этой команды вы должны находиться в канале.");
-        if(draftEmbedObject.amount > 16)
-            return this.botlibEmbeds.error("Не более 16 лидеров для игрока.");
-        if(draftEmbedObject.amount < 2)
-            return this.botlibEmbeds.error("Хотя бы 2 лидера для игрока.");
-        if(draftEmbedObject.draft[0] == undefined)
-            return this.botlibEmbeds.error("Недостаточно цивилизаций для такого драфта.");
+    async getDraftFFA(interaction: CommandInteraction, amount: number, bans: string) {
+        let draftEmbedObject = new DraftEmbedObject(interaction, amount, bans);
+        this.draftEmbedObjectRoutine.setType(draftEmbedObject,"ffa");
+        if(!await this.checkDEO(draftEmbedObject))
+            return;
+        return await interaction.reply( {embeds: signEmbed(interaction, this.draftEmbeds.draftFFA(draftEmbedObject))});
+    }
 
-        let lastDEO: DraftEmbedObject | undefined = this.draftEmbedObjectArray.filter((x: DraftEmbedObject) => (x.guildID == draftEmbedObject.guildID))[0];
-        if(lastDEO) {
-            if(lastDEO.isProcessing)
-                return this.botlibEmbeds.error("В данный момент уже проводится драфт. Пожалуйста, подождите.");
-            else
-                this.draftEmbedObjectArray[this.draftEmbedObjectArray.indexOf(lastDEO)] = draftEmbedObject;
-        } else
-            this.draftEmbedObjectArray.push(draftEmbedObject);
+    async getDraftTeamers(interaction: CommandInteraction, amount: number, bans: string) {
+        let draftEmbedObject = new DraftEmbedObject(interaction, amount, bans);
+        this.draftEmbedObjectRoutine.setType(draftEmbedObject,"teamers");
+        if(!await this.checkDEO(draftEmbedObject))
+            return;
+        return interaction.reply({embeds: signEmbed(interaction, this.draftEmbeds.draftTeamers(draftEmbedObject))});
+    }
+
+    async getDraftBlind(interaction: CommandInteraction, amount: number, bans: string) {
+        let draftEmbedObject = new DraftEmbedObject(interaction, amount, bans);
+        this.draftEmbedObjectRoutine.setType(draftEmbedObject,"blind");
+        if(!await this.checkDEO(draftEmbedObject))
+            return;
 
         draftEmbedObject.isProcessing = true;
         try{
@@ -87,71 +108,80 @@ export class DraftService{
                 });
                 draftEmbedObject.pmArray.push(msg);
             }
-            return this.draftEmbeds.draftBlindProcessing(draftEmbedObject);
+            await interaction.reply({embeds: signEmbed(interaction, this.draftEmbeds.draftBlindProcessing(draftEmbedObject))});
         } catch (e) {
-            this.draftEmbedObjectArray.splice(this.draftEmbedObjectArray.indexOf(draftEmbedObject), 1)
-            return this.botlibEmbeds.error("Один из игроков заблокировал бота. Провести драфт невозможно.");
+            this.draftEmbedObjectArray.splice(this.draftEmbedObjectArray.indexOf(draftEmbedObject), 1);
+            draftEmbedObject.pmArray.forEach(x => x.delete());
+            return await interaction.reply( {embeds: this.botlibEmbeds.error(`Один из игроков (${draftEmbedObject.users[draftEmbedObject.pmArray.length].toString()}) заблокировал бота. Провести драфт невозможно.`)});
         }
     }
 
-    getRedraft(interaction: CommandInteraction){
+    async getRedraft(interaction: CommandInteraction){
         let lastDEO: DraftEmbedObject | undefined = this.draftEmbedObjectArray.filter((x) => (x.guildID == interaction.guildId))[0];
-        if(!lastDEO) {
-            interaction.reply({embeds: [this.botlibEmbeds.error("Драфта для редрафта не найдено.")]});
+        if(!await this.checkRedraftDEO(lastDEO, interaction))
             return;
-        }
-        if(lastDEO.isProcessing){
-            interaction.reply({embeds: [this.botlibEmbeds.error("В данный момент уже проводится драфт. Пожалуйста, подождите.")]});
-            return;
-        }
-        if(lastDEO.users.indexOf(interaction.user) == -1){
-            interaction.reply({embeds: [this.botlibEmbeds.error("Вашего драфта для редрафта не найдено.")]});
-            return;
-        }
 
-        lastDEO.redraftMinAmount = Math.min(
-            lastDEO.users.length,
-            Math.floor(lastDEO.users.length/2)+1+lastDEO.redraftCounter
-        );
+        lastDEO.redraftMinAmount = Math.min(lastDEO.users.length, Math.floor(lastDEO.users.length/2)+1+lastDEO.redraftCounter);
         lastDEO.interaction = interaction;
         lastDEO.isProcessing = true;
-
-        interaction.reply( {
-            embeds: [this.draftEmbeds.redraftProcessing(lastDEO)],
+        await interaction.reply( {
+            embeds: signEmbed(interaction, this.draftEmbeds.redraftProcessing(lastDEO)),
             components: this.draftButtons.redraftButtons()
         });
     }
 
     async runRedraft(draftEmbedObject: DraftEmbedObject){
-        let redraftEmbed: MessageEmbed = this.draftEmbeds.redraftProcessing(draftEmbedObject);
+        let msgArray: MessageEmbed[] = [this.draftEmbeds.redraftProcessing(draftEmbedObject)];
+        let interaction: CommandInteraction = draftEmbedObject.interaction;
         draftEmbedObject.redraftCounter += 1;
         draftEmbedObject.redraftResult = -1;
+        this.draftEmbedObjectRoutine.setType(draftEmbedObject, draftEmbedObject.type);
         switch(draftEmbedObject.type){
             case "ffa":
-                return await draftEmbedObject.interaction.editReply({embeds: [redraftEmbed, this.getDraftFFA(draftEmbedObject.interaction, draftEmbedObject)], components: []});
+                msgArray.push(this.draftEmbeds.draftFFA(draftEmbedObject));
+                return await draftEmbedObject.interaction.editReply({embeds: signEmbed(interaction, msgArray), components: []});
             case "teamers":
-                let teamersEmbeds: MessageEmbed[] = this.getDraftTeamers(draftEmbedObject.interaction, draftEmbedObject);
-                teamersEmbeds.unshift(redraftEmbed);
-                return await draftEmbedObject.interaction.editReply({embeds: teamersEmbeds, components: []});
+                msgArray = msgArray.concat(this.draftEmbeds.draftTeamers(draftEmbedObject));
+                return await draftEmbedObject.interaction.editReply({embeds: signEmbed(interaction, msgArray), components: []});
             case "blind":
-                return await draftEmbedObject.interaction.editReply({embeds: [redraftEmbed, await this.getDraftBlind(draftEmbedObject.interaction, draftEmbedObject)], components: this.draftButtons.blindDelete()});
+                msgArray.push(this.draftEmbeds.draftBlindProcessing(draftEmbedObject));
+                draftEmbedObject.isProcessing = true;
+                try{
+                    for(let i: number = 0; i < draftEmbedObject.users.length; i++) {
+                        let msg: Message = await draftEmbedObject.users[i].send({
+                            embeds: [this.draftEmbeds.draftBlindPm(draftEmbedObject, i)],
+                            components: this.draftButtons.blindPmRows(draftEmbedObject, i)
+                        });
+                        draftEmbedObject.pmArray.push(msg);
+                    }
+                    return await draftEmbedObject.interaction.editReply({
+                        embeds: signEmbed(interaction, msgArray),
+                        components: this.draftButtons.blindDelete()
+                    });
+                } catch (e) {
+                    this.draftEmbedObjectArray.splice(this.draftEmbedObjectArray.indexOf(draftEmbedObject), 1);
+                    draftEmbedObject.pmArray.forEach(x => x.delete());
+                    return await interaction.reply( {embeds: this.botlibEmbeds.error(`Один из игроков (${draftEmbedObject.users[draftEmbedObject.pmArray.length].toString()}) заблокировал бота. Провести драфт невозможно.`)});
+                }
         }
     }
 }
 
 class DraftEmbedObjectRoutine{
-    static draftConfig: DraftConfig = new DraftConfig();
+    draftConfig: DraftConfig = new DraftConfig();
 
-    static setType(draftEmbedObject: DraftEmbedObject, type: "ffa" | "teamers" | "blind"): void{
+    // Генерирует драфт
+    setType(draftEmbedObject: DraftEmbedObject, type: "ffa" | "teamers" | "blind" | undefined): void{
         draftEmbedObject.type = type;
         draftEmbedObject.draft = [];
         draftEmbedObject.usersReadyBlind = new Array(draftEmbedObject.users.length).fill(false);
         draftEmbedObject.redraftStatus = new Array(draftEmbedObject.users.length).fill(-1);
+        draftEmbedObject.pmArray = [];
 
-        draftEmbedObject.civilizations = Array.from(DraftEmbedObjectRoutine.draftConfig.civilizations.values());
+        draftEmbedObject.civilizations = Array.from(this.draftConfig.civilizations.values());
         for(let rawBan of draftEmbedObject.rawBans){
-            if(DraftEmbedObjectRoutine.draftConfig.civilizations.has(rawBan))
-                draftEmbedObject.bans.push(DraftEmbedObjectRoutine.draftConfig.civilizations.get(rawBan) as string);
+            if(this.draftConfig.civilizations.has(rawBan))
+                draftEmbedObject.bans.push(this.draftConfig.civilizations.get(rawBan) as string);
             else if (rawBan != '')
                 draftEmbedObject.errors.push(rawBan);
         }
@@ -164,8 +194,8 @@ class DraftEmbedObjectRoutine{
             case "blind":
             case "ffa":
                 if(draftEmbedObject.amount == 0)
-                    draftEmbedObject.amount = Math.min(Math.floor(draftEmbedObject.civilizations.length / draftEmbedObject.users.length), 16);
-                if((draftEmbedObject.users.length != 0) && (draftEmbedObject.amount <= 16) && (draftEmbedObject.amount * draftEmbedObject.users.length <= draftEmbedObject.civilizations.length))
+                    draftEmbedObject.amount = Math.min(Math.floor(draftEmbedObject.civilizations.length / draftEmbedObject.users.length), this.draftConfig.ffaCivilizationMax);
+                if((draftEmbedObject.users.length != 0) && (draftEmbedObject.amount <= this.draftConfig.ffaCivilizationMax) && (draftEmbedObject.amount * draftEmbedObject.users.length <= draftEmbedObject.civilizations.length))
                     for (let i = 0; i < draftEmbedObject.users.length; i++){
                         draftEmbedObject.draft.push([]);
                         for (let j = 0; j < draftEmbedObject.amount; j++)
@@ -173,7 +203,7 @@ class DraftEmbedObjectRoutine{
                     }
                 break;
             case "teamers":
-                if(draftEmbedObject.amount >= 2 && draftEmbedObject.amount <= 6){
+                if(draftEmbedObject.amount >= this.draftConfig.teamersCommandsMin && draftEmbedObject.amount <= this.draftConfig.teamersCommandsMax){
                     let civilizationPerTeam: number = Math.floor(draftEmbedObject.civilizations.length / draftEmbedObject.amount);
                     for(let i = 0; i < draftEmbedObject.amount; i++){
                         draftEmbedObject.draft.push([]);
@@ -197,12 +227,14 @@ class DraftEmbedObjectRoutine{
                     } while(!correctDraft);
                 }
                 break;
+            default:
+                break;
         }
         draftEmbedObject.draft.forEach(draft => draft.sort());
         return;
     }
 
-    private static getDraftSwapIndex(draft: string[]): number{
+    private getDraftSwapIndex(draft: string[]): number{
         let civilizations: string[] = Array.from(this.draftConfig.civilizations.values());
         let swapIndex: number = -1;
         for(let pair of this.draftConfig.indexNationPairArray){

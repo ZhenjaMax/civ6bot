@@ -1,14 +1,16 @@
 import {CommandInteraction} from "discord.js";
-import {BotlibEmbeds} from "../../botlib/botlib.embeds";
+import {BotlibEmbeds, signEmbed} from "../../botlib/botlib.embeds";
 import {UserSteamService} from "../../db/services/userSteam.service";
 import {ConnectionEmbeds} from "./connection.embeds";
 import {ConnectionButtons} from "./buttons/connection.buttons";
+import {ConnectionConfig} from "./connection.config";
 const fetch = require('node-fetch');
 
 // Singleton
 export class ConnectionService{
     botlibEmbeds: BotlibEmbeds = new BotlibEmbeds();
     connectionEmbeds: ConnectionEmbeds = new ConnectionEmbeds();
+    connectionConfig: ConnectionConfig = new ConnectionConfig();
     userSteamService: UserSteamService = new UserSteamService();
     connectionButtons: ConnectionButtons = new ConnectionButtons();
 
@@ -18,39 +20,35 @@ export class ConnectionService{
         return this._instance || (this._instance = new this());
     }
 
-    // закрытый профиль игнорируется, данные берутся
-    // Нужно проверять игру 480 / 289070
+    // 1) закрытый профиль игнорируется, данные всё равно импортируется - нужно проверять игру 480 / 289070
+    // 2) не поддерживает URI steam://, придётся использовать components: this.connectionButtons.linkButton(steamLobbyURL, isLicense)
     async getLobbyLink(interaction: CommandInteraction, description: string){
         let userData: any = await this.userSteamService.getOne(interaction.user.id);
 
         if(!userData)
-            return await interaction.reply({embeds: [this.botlibEmbeds.error("Вашего аккаунта нет в базе данных.")]});
-        if(!userData.steamID)
-            return await interaction.reply({embeds: [this.botlibEmbeds.error("Вы не подключили Steam для бота.\nИспользуйте команду /link для подключения.")]});
+            return this.getConnect(interaction);
         let steamAPIURL = `https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key=${process.env.STEAM_KEY}&format=json&steamids=${userData.steamID}`;
         let steamData = await fetch(steamAPIURL);
         steamData = await steamData.json();
         steamData = steamData.response.players[0];
 
         if(!steamData.lobbysteamid)
-            return await interaction.reply({embeds: [this.botlibEmbeds.error("Вы не создали игровое лобби или ваш профиль Steam \"не в сети\".")]});
-        if(!(steamData.gameid == "480" || steamData.gameid == "289070"))
-            return await interaction.reply({embeds: [this.botlibEmbeds.error("Вы играете в неподходящую игру для генерации ссылки.")]});
-        let isLicense: boolean = (steamData.gameid == "289070");
+            return await interaction.reply({embeds: this.botlibEmbeds.error("Вы не создали игровое лобби или ваш профиль Steam \"не в сети\".")});
+        if(!(steamData.gameid == this.connectionConfig.headerPirate || steamData.gameid == this.connectionConfig.headerLicense))
+            return await interaction.reply({embeds: this.botlibEmbeds.error("Вы играете в неподходящую игру для генерации ссылки.")});
+        let isLicense: boolean = (steamData.gameid == this.connectionConfig.headerLicense);
 
         let steamLobbyURL: string = `steam://joinlobby/${steamData.gameid}/${steamData.lobbysteamid}/${steamData.steamid}`;
         await interaction.reply({
-            embeds: [this.connectionEmbeds.link(steamLobbyURL, isLicense, interaction.user, description)],
-            // Не работает
-            // не поддерживает URI steam://
-            // components: this.connectionButtons.linkButton(steamLobbyURL, isLicense)
+            embeds: signEmbed(interaction, this.connectionEmbeds.link(steamLobbyURL, isLicense, description)),
         })
     }
 
-    async getConnectLink(interaction: CommandInteraction){
+    async getConnect(interaction: CommandInteraction){
         await interaction.reply({
             embeds: [this.connectionEmbeds.connect()],
-            components: this.connectionButtons.connectButton(process.env.OAUTH2_REDIRECT_LINK as string)
+            components: this.connectionButtons.connectButton(process.env.OAUTH2_REDIRECT_LINK as string),
+            ephemeral: true
         });
     }
 }
