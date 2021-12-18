@@ -162,10 +162,12 @@ export class DraftService{
                         embeds: signEmbed(interaction, msgArray),
                         components: this.draftButtons.blindDelete()
                     });
-                } catch (e) {
-                    this.draftEmbedObjectArray.splice(this.draftEmbedObjectArray.indexOf(draftEmbedObject), 1);
+                } catch (blindError) {
+                    let user: User = draftEmbedObject.users[draftEmbedObject.pmArray.length];
+                    let msg: MessageEmbed[] = this.botlibEmbeds.error(`Один из игроков (${user.toString()}) заблокировал бота. Провести драфт невозможно.`);
                     draftEmbedObject.pmArray.forEach(x => x.delete());
-                    return await interaction.reply( {embeds: this.botlibEmbeds.error(`Один из игроков (${draftEmbedObject.users[draftEmbedObject.pmArray.length].toString()}) заблокировал бота. Провести драфт невозможно.`)});
+                    this.draftEmbedObjectArray.splice(this.draftEmbedObjectArray.indexOf(draftEmbedObject), 1);
+                    return await interaction.reply( {embeds: msg});
                 }
         }
     }
