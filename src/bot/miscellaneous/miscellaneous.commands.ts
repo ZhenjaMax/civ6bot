@@ -1,5 +1,5 @@
 import {Discord, Slash, SlashOption} from "discordx";
-import {CommandInteraction} from "discord.js";
+import {CommandInteraction, GuildMember} from "discord.js";
 import {MiscellaneousService} from "./miscellaneous.service";
 
 @Discord()
@@ -24,4 +24,10 @@ export abstract class MiscellaneousCommands {
 
     @Slash("flip", { description: "Подбросить монетку"})
     async coin(interaction: CommandInteraction){ await this.miscellaneousService.flipCoin(interaction); }
+
+    @Slash("avatar", {description: "Получить изображение профиля пользователя"})
+    async avatar(
+        @SlashOption("пользователь", {type: "USER", description: "по умолчанию - изображение автора"}) member: GuildMember,
+        interaction: CommandInteraction
+    ) { await this.miscellaneousService.getAvatar(interaction, member) }
 }

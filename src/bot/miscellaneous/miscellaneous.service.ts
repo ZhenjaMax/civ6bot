@@ -1,4 +1,4 @@
-import {CommandInteraction, MessageEmbed} from "discord.js";
+import {CommandInteraction, GuildMember, MessageEmbed} from "discord.js";
 const fetch = require('node-fetch');
 
 import {MiscellaneousEmbeds } from "./miscellaneous.embeds";
@@ -21,26 +21,27 @@ export class MiscellaneousService {
             let catData = await fetch(this.miscellaneousConfig.randomCatURL);
             catData = await catData.json();
             let catURL: string = (Math.random() < this.miscellaneousConfig.catBambrChance) ? this.miscellaneousConfig.catBambrURL : catData.file;
-            return await interaction.reply({
-                embeds: [this.miscellaneousEmbeds.catImage(catURL)]
-            });
+            return await interaction.reply({embeds: signEmbed(interaction, this.miscellaneousEmbeds.catImage(catURL))});
         } catch (catError) {
             return await interaction.reply({embeds: this.botlibEmbeds.error("Сервер не предоставил изображение.")});
         }
     }
 
-    /* Невозможно использовать декоратор @SignEmbed */
     async getRandomDog(interaction: CommandInteraction){
         try {
             let dogData = await fetch(this.miscellaneousConfig.randomDogURL);
             dogData = await dogData.json();
             let dogURL: string = dogData.message;
-            await interaction.reply({
-                embeds: [this.miscellaneousEmbeds.dogImage(dogURL)]
-            });
+            await interaction.reply({embeds: signEmbed(interaction, this.miscellaneousEmbeds.dogImage(dogURL))});
         } catch (dogError) {
             return await interaction.reply({embeds: this.botlibEmbeds.error("Сервер не предоставил изображение.")});
         }
+    }
+
+    async getAvatar(interaction: CommandInteraction, member: GuildMember){
+        if(!member)
+            member = interaction.member as GuildMember;
+        return await interaction.reply({embeds: [this.miscellaneousEmbeds.avatar(member.displayAvatarURL({size: 2048}), member.user.tag)]})
     }
 
     async getRandom(interaction: CommandInteraction, n: number){

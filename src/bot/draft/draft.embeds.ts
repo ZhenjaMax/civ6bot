@@ -5,6 +5,7 @@ import {DraftConfig} from "./draft.config";
 import {BotlibEmojis} from "../../botlib/botlib.emojis";
 
 export class DraftEmbeds{
+    botlibRandom: BotlibRandom = new BotlibRandom();
     botlibEmojis: BotlibEmojis = new BotlibEmojis();
     draftConfig: DraftConfig = new DraftConfig();
 
@@ -37,7 +38,7 @@ export class DraftEmbeds{
             }
         }
         if(draftEmbedObject.type == "blind") {
-            blindNoSwapString += "\n❗ **Свап цивилизациями запрещён при драфте вслепую.**";
+            blindNoSwapString += "\n❗ **Свап цивилизациями запрещён при драфте взакрытую.**";
             if(draftEmbedObject.isProcessing)
                 blindProcessing += "\nИгроки выбирают цивилизации. Пожалуйста, подождите.";
         }
@@ -47,7 +48,7 @@ export class DraftEmbeds{
 
     protected baseDraftEmbed(draftEmbedObject: DraftEmbedObject): MessageEmbed{
         return new MessageEmbed()
-            .setColor(BotlibRandom.getRandomHexBrightString())
+            .setColor(this.botlibRandom.getRandomHexBrightString())
             .setDescription(this.getBaseDescriptionString(draftEmbedObject));
     }
 
@@ -72,7 +73,7 @@ export class DraftEmbeds{
         let headerString = ((draftEmbedObject.redraftCounter == 0) ? "Драфт" : "Редрафт")
             + ` Teamers для ${draftEmbedObject.amount} команд`;
         let embedMsgArray: MessageEmbed[] = [];
-        let hexColor = BotlibRandom.getRandomHexBrightString();
+        let hexColor = this.botlibRandom.getRandomHexBrightString();
         embedMsgArray.push(this.baseDraftEmbed(draftEmbedObject)
             .setColor(hexColor)
             .setAuthor(headerString));
@@ -94,8 +95,8 @@ export class DraftEmbeds{
         for(let i: number = 0; i < draftEmbedObject.draft[userNumber].length; i++)
             fieldString += `${draftEmbedObject.draft[userNumber][i]}\n`;
         return new MessageEmbed()
-            .setAuthor("Выбор цивилизации для драфта вслепую")
-            .setDescription("\n❗ **Свап цивилизациями запрещён при драфте вслепую.**")
+            .setAuthor("Выбор цивилизации для драфта взакрытую")
+            .setDescription("\n❗ **Свап цивилизациями запрещён при драфте взакрытую.**")
             .addField(
                 "🤔 **Статус: в процессе выбора.**",
                 "Вам предлагается тайно выбрать одну из цивилизаций, перечисленных ниже. Для этого нажмите на одну из кнопок ниже.\n**Учтите, что вы не сможете перевыбрать. Будьте внимательны!**\n\n" + fieldString)
@@ -104,8 +105,8 @@ export class DraftEmbeds{
 
     draftBlindPmReady(draftEmbedObject: DraftEmbedObject, userNumber: number): MessageEmbed{
         return new MessageEmbed()
-            .setAuthor("Выбор цивилизации для драфта вслепую")
-            .setDescription("❗ **Свап цивилизациями запрещён при драфте вслепую.**")
+            .setAuthor("Выбор цивилизации для драфта взакрытую")
+            .setDescription("❗ **Свап цивилизациями запрещён при драфте взакрытую.**")
             .addField("🗿 **Статус: решение принято.**", "Теперь возвращайтесь в исходный текстовый канал и ожидайте результата.\n\nВы выбрали — " + draftEmbedObject.draft[userNumber][0])
             .setColor("#FFFFFF");
     }
@@ -115,7 +116,7 @@ export class DraftEmbeds{
             return this.draftBlind(draftEmbedObject);
         let headerString: string =
             ((draftEmbedObject.redraftCounter == 0) ? "Драфт" : `Редрафт #${draftEmbedObject.redraftCounter}`)
-            + " вслепую"
+            + " взакрытую"
             + ` для ${draftEmbedObject.users.length} игрок`
             + (draftEmbedObject.users.length == 1 ? "а" : "ов");
         let usersString: string = "";
@@ -134,7 +135,7 @@ export class DraftEmbeds{
     draftBlind(draftEmbedObject: DraftEmbedObject): MessageEmbed{
         let headerString: string =
             ((draftEmbedObject.redraftCounter == 0) ? "Драфт" : `Редрафт #${draftEmbedObject.redraftCounter}`)
-            + " вслепую"
+            + " взакрытую"
             + ` для ${draftEmbedObject.users.length} игрок`
             + (draftEmbedObject.users.length == 1 ? "а" : "ов");
         let embedMsg: MessageEmbed = this.baseDraftEmbed(draftEmbedObject)
@@ -167,7 +168,7 @@ export class DraftEmbeds{
                 break;
         }
         let authorUser: User = draftEmbedObject.interaction.user as User;
-        let titleString: string = `🔄 Редрафт #${draftEmbedObject.redraftCounter+1} ${draftEmbedObject.type == "ffa" ? "FFA" : (draftEmbedObject.type == "teamers" ? "Teamers" : "вслепую" )}`;
+        let titleString: string = `🔄 Редрафт #${draftEmbedObject.redraftCounter+1} ${draftEmbedObject.type == "ffa" ? "FFA" : (draftEmbedObject.type == "teamers" ? "Teamers" : "взакрытую" )}`;
 
         let yesRedraft: string = "", noRedraft: string = "", abstainedRedraft = "";
         for(let i in draftEmbedObject.redraftStatus)
