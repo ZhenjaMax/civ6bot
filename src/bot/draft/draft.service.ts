@@ -1,11 +1,10 @@
-import {CommandInteraction, Message, MessageEmbed} from "discord.js";
+import {CommandInteraction, Message, MessageEmbed, User} from "discord.js";
 import {DraftEmbedObject} from "./draft.models"
 import {BotlibEmbeds, signEmbed} from "../../botlib/botlib.embeds";
 import {DraftEmbeds} from "./draft.embeds";
 import {DraftConfig} from "./draft.config";
 import {DraftButtons} from "./buttons/draft.buttons";
 
-// Singleton
 export class DraftService{
     draftEmbedObjectArray: DraftEmbedObject[] = [];
     draftEmbeds: DraftEmbeds = new DraftEmbeds();
@@ -52,7 +51,7 @@ export class DraftService{
         let lastDEO: DraftEmbedObject | undefined = this.draftEmbedObjectArray.filter((x: DraftEmbedObject) => (x.guildID == DEO.guildID))[0];
         if(lastDEO) {
             if(lastDEO.isProcessing) {
-                await DEO.interaction.reply({embeds: this.botlibEmbeds.error("В данный момент уже проводится драфт. Пожалуйста, подождите.")});
+                await DEO.interaction.reply({embeds: this.botlibEmbeds.error("В данный момент уже проводится драфт. Пожалуйста, подождите."), ephemeral: true});
                 return false;
             }
             this.draftEmbedObjectArray[this.draftEmbedObjectArray.indexOf(lastDEO)] = DEO;
@@ -108,11 +107,16 @@ export class DraftService{
                 });
                 draftEmbedObject.pmArray.push(msg);
             }
-            await interaction.reply({embeds: signEmbed(interaction, this.draftEmbeds.draftBlindProcessing(draftEmbedObject))});
-        } catch (e) {
+            await interaction.reply({
+                embeds: signEmbed(interaction, this.draftEmbeds.draftBlindProcessing(draftEmbedObject)),
+                components: this.draftButtons.blindDelete()
+            });
+        } catch (blindError) {
+            let user: User = draftEmbedObject.users[draftEmbedObject.pmArray.length];
+            let msg: MessageEmbed[] = this.botlibEmbeds.error(`Один из игроков (${user.toString()}) заблокировал бота. Провести драфт невозможно.`);
             this.draftEmbedObjectArray.splice(this.draftEmbedObjectArray.indexOf(draftEmbedObject), 1);
             draftEmbedObject.pmArray.forEach(x => x.delete());
-            return await interaction.reply( {embeds: this.botlibEmbeds.error(`Один из игроков (${draftEmbedObject.users[draftEmbedObject.pmArray.length].toString()}) заблокировал бота. Провести драфт невозможно.`)});
+            return await interaction.reply( {embeds: msg});
         }
     }
 

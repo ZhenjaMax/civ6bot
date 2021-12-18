@@ -22,7 +22,7 @@ export abstract class DraftCommands {
         interaction: CommandInteraction
     ) { await this.draftService.getDraftTeamers(interaction, amount, bans); }
 
-    @Slash("blind", { description: "Драфт цивилизаций для FFA вслепую" })
+    @Slash("blind", { description: "Драфт цивилизаций для FFA взакрытую" })
     async draftBlind(
         @SlashOption("количество-цивилизаций", { required: false }) amount: number = 0,
         @SlashOption("баны", { required: false }) bans: string = "",

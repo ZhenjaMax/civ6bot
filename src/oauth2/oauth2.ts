@@ -54,7 +54,6 @@ app.get('/', async (request, response) => {
         } else
             return response.send(`status=updated\nuser_id=${userID},\nsteam_id=${userSteamID}`);
     } catch (e) {
-        console.log(e);
         return response.send("error: no discord-steam connection");
     }
 });
