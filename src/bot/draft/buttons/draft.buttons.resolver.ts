@@ -1,15 +1,9 @@
 import {ButtonComponent, Discord} from "discordx";
 import {ButtonInteraction, DMChannel, Message, User} from "discord.js";
-
 import {DraftEmbedObject} from "../draft.models";
 import {DraftService} from "../draft.service";
 import {BotlibEmbeds} from "../../../botlib/botlib.embeds";
-import {ClientSingleton} from "../../../client/client";
 import {DraftEmbeds} from "../draft.embeds";
-
-// Я не могу удалить сообщение
-// которое не было отправлено при
-// текущей сессии работы бота
 
 @Discord()
 export abstract class DraftButtonsResolver{
@@ -17,33 +11,11 @@ export abstract class DraftButtonsResolver{
     botlibEmbeds: BotlibEmbeds = new BotlibEmbeds();
     draftEmbeds: DraftEmbeds = new DraftEmbeds();
 
-    // Это выглядит ужасно,
-    // и я не знаю, можно ли назначить
-    // компоненты корректным образом
-
-    @ButtonComponent("blindDraftButton-0")
-    @ButtonComponent("blindDraftButton-1")
-    @ButtonComponent("blindDraftButton-2")
-    @ButtonComponent("blindDraftButton-3")
-    @ButtonComponent("blindDraftButton-4")
-    @ButtonComponent("blindDraftButton-5")
-    @ButtonComponent("blindDraftButton-6")
-    @ButtonComponent("blindDraftButton-7")
-    @ButtonComponent("blindDraftButton-8")
-    @ButtonComponent("blindDraftButton-9")
-    @ButtonComponent("blindDraftButton-10")
-    @ButtonComponent("blindDraftButton-11")
-    @ButtonComponent("blindDraftButton-12")
-    @ButtonComponent("blindDraftButton-13")
-    @ButtonComponent("blindDraftButton-14")
-    @ButtonComponent("blindDraftButton-15")
+    @ButtonComponent(/blindDraftButton-\d+/)
     async blindDraftButton(interaction: ButtonInteraction) {
         try {
             let msg = interaction.message as Message;
 
-            // Потенциально опасный код,
-            // потому что объект с нужной
-            // игрой может быть не найден
             let draftEmbedObject: DraftEmbedObject = this.draftService.draftEmbedObjectArray.filter((x: DraftEmbedObject) => (x.isProcessing) && (x.users.indexOf(interaction.user) != -1))[0];
             let userNumber: number = draftEmbedObject.users.indexOf(interaction.user);
             let civilizationNumber: number = Number(interaction.customId.slice(interaction.customId.indexOf("-") + 1));
@@ -60,8 +32,7 @@ export abstract class DraftButtonsResolver{
             await draftEmbedObject.interaction.editReply({embeds: [this.draftEmbeds.draftBlindProcessing(draftEmbedObject)]});
             return;
         } catch (buttonError) {
-            let client: ClientSingleton = ClientSingleton.Instance;
-            let user: User = await client.client.users.fetch(interaction.user.id);
+            let user: User = interaction.user;
             let dm: DMChannel = await user.createDM();
             let msg = await dm.messages.fetch(interaction.message.id) as Message;
             await msg.delete();
@@ -72,15 +43,11 @@ export abstract class DraftButtonsResolver{
     async redraftButtonYes(interaction: ButtonInteraction){
         try{
             let msg = interaction.message as Message;
-
-            // Потенциально опасный код,
-            // потому что объект с нужной
-            // игрой может быть не найден
             let draftEmbedObject: DraftEmbedObject = this.draftService.draftEmbedObjectArray.filter((x: DraftEmbedObject) => (x.isProcessing) && (x.users.indexOf(interaction.user) != -1))[0];
             let userNumber: number = draftEmbedObject.users.indexOf(interaction.user);
 
             if(userNumber == -1)
-                return interaction.reply({embeds: this.botlibEmbeds.error("Вы не были участником игры, в голосовании которой вы пытаетесь принять участие."), ephemeral: true});
+                return interaction.reply({embeds: this.botlibEmbeds.error("Вы не являетесь участником игры, в голосовании для которой вы пытаетесь принять участие."), ephemeral: true});
 
             draftEmbedObject.redraftStatus[userNumber] = 1;
             if(draftEmbedObject.redraftStatus.filter(x => (x == 1)).length >= draftEmbedObject.redraftMinAmount)
@@ -102,15 +69,11 @@ export abstract class DraftButtonsResolver{
     async redraftButtonNo(interaction: ButtonInteraction){
         try{
             let msg = interaction.message as Message;
-
-            // Потенциально опасный код,
-            // потому что объект с нужной
-            // игрой может быть не найден
             let draftEmbedObject: DraftEmbedObject = this.draftService.draftEmbedObjectArray.filter((x: DraftEmbedObject) => (x.isProcessing) && (x.users.indexOf(interaction.user) != -1))[0];
             let userNumber: number = draftEmbedObject.users.indexOf(interaction.user);
 
             if(userNumber == -1)
-                return interaction.reply({embeds: this.botlibEmbeds.error("Вы не принимаете участие в данной игре."), ephemeral: true});
+                return interaction.reply({embeds: this.botlibEmbeds.error("Вы не являетесь участником игры, в голосовании для которой вы пытаетесь принять участие."), ephemeral: true});
 
             draftEmbedObject.redraftStatus[userNumber] = 0;
             if(draftEmbedObject.redraftStatus.filter(x => (x == 0)).length >= draftEmbedObject.users.length-draftEmbedObject.redraftMinAmount+1)
