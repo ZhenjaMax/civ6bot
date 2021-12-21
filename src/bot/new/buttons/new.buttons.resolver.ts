@@ -41,6 +41,7 @@ export abstract class NewButtonsResolver{
         if(userIndex == -1)
             return interaction.reply({embeds: this.botlibEmbeds.error("Вы не являетесь участником игры, в голосовании для которой вы пытаетесь принять участие."), ephemeral: true});
         currentNewVote.ready[userIndex] = 1;
+        await currentNewVote.messages[currentNewVote.messages.length-1].edit({embeds: [this.newEmbeds.readyForm(currentNewVote)]});
         if(currentNewVote.ready.filter(x => x==1).length == currentNewVote.users.length){
             currentNewVote.resolveAll();
             for(let i: number = 0; i < currentNewVote.newVoteObjects.length; i++)
