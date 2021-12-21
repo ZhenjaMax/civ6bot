@@ -100,24 +100,26 @@ export class DraftService{
 
         draftEmbedObject.isProcessing = true;
         try{
-            for(let i: number = 0; i < draftEmbedObject.users.length; i++) {
-                let msg: Message = await draftEmbedObject.users[i].send({
+            for(let i: number = 0; i < draftEmbedObject.users.length; i++)
+                draftEmbedObject.pmArray.push(await draftEmbedObject.users[i].send({
                     embeds: [this.draftEmbeds.draftBlindPm(draftEmbedObject, i)],
                     components: this.draftButtons.blindPmRows(draftEmbedObject, i)
-                });
-                draftEmbedObject.pmArray.push(msg);
-            }
-            await interaction.reply({
-                embeds: signEmbed(interaction, this.draftEmbeds.draftBlindProcessing(draftEmbedObject)),
-                components: this.draftButtons.blindDelete()
-            });
+                }));
         } catch (blindError) {
+            draftEmbedObject.isProcessing = false;
             let user: User = draftEmbedObject.users[draftEmbedObject.pmArray.length];
+            console.log(blindError);
+            console.log(draftEmbedObject)
+            console.log(draftEmbedObject.pmArray.length)
             let msg: MessageEmbed[] = this.botlibEmbeds.error(`Один из игроков (${user.toString()}) заблокировал бота. Провести драфт невозможно.`);
             this.draftEmbedObjectArray.splice(this.draftEmbedObjectArray.indexOf(draftEmbedObject), 1);
             draftEmbedObject.pmArray.forEach(x => x.delete());
             return await interaction.reply( {embeds: msg});
         }
+        await interaction.reply({
+            embeds: signEmbed(interaction, this.draftEmbeds.draftBlindProcessing(draftEmbedObject)),
+            components: this.draftButtons.blindDelete()
+        });
     }
 
     async getRedraft(interaction: CommandInteraction){
