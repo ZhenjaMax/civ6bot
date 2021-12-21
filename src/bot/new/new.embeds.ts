@@ -36,6 +36,8 @@ export class NewEmbeds{
                 fieldValueReady += `${newVote.users[i].toString()}\n`
         if(fieldValueReady == "")
             fieldValueReady = "—";
+        if(fieldValueNotReady == "")
+            fieldValueNotReady = "—";
         embedMsg.addField("Не готов", fieldValueNotReady, true);
         embedMsg.addField("Готов", fieldValueReady, true);
         return embedMsg;
