@@ -13,7 +13,6 @@ export abstract class NewButtonsResolver{
 
     @ButtonComponent(/new-\d+-\d+/)
     async newOptionButton(interaction: ButtonInteraction) {
-        await interaction.deferUpdate();
         let currentNewVote: NewVote = this.newService.newVoteArray.filter((x: NewVote) => (x.isProcessing && (x.interaction.guildId == interaction.guildId)))[0];
         if(!currentNewVote) {
             let msg = interaction.message as Message;
@@ -22,6 +21,7 @@ export abstract class NewButtonsResolver{
         let userIndex = currentNewVote.users.indexOf(interaction.user);
         if(userIndex == -1)
             return interaction.reply({embeds: this.botlibEmbeds.error("Вы не являетесь участником игры, в голосовании для которой вы пытаетесь принять участие."), ephemeral: true});
+        await interaction.deferUpdate();
         let buttonID: string = interaction.customId.slice(4);
         let voteIndex: number = Number(buttonID.slice(0, buttonID.indexOf("-")));
         let optionIndex: number = Number(buttonID.slice(buttonID.indexOf("-")+1));
@@ -31,7 +31,6 @@ export abstract class NewButtonsResolver{
 
     @ButtonComponent("new-ready")
     async newPlayerReady(interaction: ButtonInteraction) {
-        await interaction.deferUpdate();
         let currentNewVote: NewVote = this.newService.newVoteArray.filter((x: NewVote) => (x.isProcessing && (x.interaction.guildId == interaction.guildId)))[0];
         if(!currentNewVote) {
             let msg = interaction.message as Message;
@@ -40,6 +39,7 @@ export abstract class NewButtonsResolver{
         let userIndex = currentNewVote.users.indexOf(interaction.user);
         if(userIndex == -1)
             return interaction.reply({embeds: this.botlibEmbeds.error("Вы не являетесь участником игры, в голосовании для которой вы пытаетесь принять участие."), ephemeral: true});
+        await interaction.deferUpdate();
         currentNewVote.ready[userIndex] = 1;
         await currentNewVote.messages[currentNewVote.messages.length-1].edit({embeds: [this.newEmbeds.readyForm(currentNewVote)]});
         if(currentNewVote.ready.filter(x => x==1).length == currentNewVote.users.length){

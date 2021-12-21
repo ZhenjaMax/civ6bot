@@ -50,10 +50,8 @@ export abstract class DraftButtonsResolver{
                 return interaction.reply({embeds: this.botlibEmbeds.error("Вы не являетесь участником игры, в голосовании для которой вы пытаетесь принять участие."), ephemeral: true});
 
             draftEmbedObject.redraftStatus[userNumber] = 1;
-            if(draftEmbedObject.redraftStatus.filter(x => (x == 1)).length >= draftEmbedObject.redraftMinAmount)
+            if(draftEmbedObject.redraftStatus.filter(x => (x == 1)).length >= draftEmbedObject.redraftMinAmount){
                 draftEmbedObject.redraftResult = 1;
-
-            if(draftEmbedObject.redraftResult == 1){
                 draftEmbedObject.isProcessing = false;
                 await msg.edit({ embeds: [this.draftEmbeds.redraftProcessing(draftEmbedObject)], components: [] });
                 setTimeout(async () => {await this.draftService.runRedraft(draftEmbedObject);}, 3000);
@@ -76,10 +74,8 @@ export abstract class DraftButtonsResolver{
                 return interaction.reply({embeds: this.botlibEmbeds.error("Вы не являетесь участником игры, в голосовании для которой вы пытаетесь принять участие."), ephemeral: true});
 
             draftEmbedObject.redraftStatus[userNumber] = 0;
-            if(draftEmbedObject.redraftStatus.filter(x => (x == 0)).length >= draftEmbedObject.users.length-draftEmbedObject.redraftMinAmount+1)
+            if(draftEmbedObject.redraftStatus.filter(x => (x == 0)).length >= draftEmbedObject.users.length-draftEmbedObject.redraftMinAmount+1){
                 draftEmbedObject.redraftResult = 0;
-
-            if(draftEmbedObject.redraftResult == 0){
                 await msg.edit({ embeds: [this.draftEmbeds.redraftProcessing(draftEmbedObject)], components: [] });
                 this.draftService.draftEmbedObjectArray.splice(this.draftService.draftEmbedObjectArray.indexOf(draftEmbedObject), 1)
             } else
