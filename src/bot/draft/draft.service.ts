@@ -105,6 +105,10 @@ export class DraftService{
                     embeds: [this.draftEmbeds.draftBlindPm(draftEmbedObject, i)],
                     components: this.draftButtons.blindPmRows(draftEmbedObject, i)
                 }));
+            await interaction.reply({
+                embeds: signEmbed(interaction, this.draftEmbeds.draftBlindProcessing(draftEmbedObject)),
+                components: this.draftButtons.blindDelete()
+            });
         } catch (blindError) {
             draftEmbedObject.isProcessing = false;
             this.draftEmbedObjectArray.splice(this.draftEmbedObjectArray.indexOf(draftEmbedObject), 1);
@@ -115,10 +119,6 @@ export class DraftService{
             let msg: MessageEmbed[] = this.botlibEmbeds.error(`Один из игроков (${user.toString()}) заблокировал бота. Провести драфт невозможно.`);
             return await interaction.reply( {embeds: msg});
         }
-        await interaction.reply({
-            embeds: signEmbed(interaction, this.draftEmbeds.draftBlindProcessing(draftEmbedObject)),
-            components: this.draftButtons.blindDelete()
-        });
     }
 
     async getRedraft(interaction: CommandInteraction){
