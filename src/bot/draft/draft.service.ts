@@ -25,19 +25,19 @@ export class DraftService{
             return false;
         }
         switch(DEO.type) {
-            case "ffa":
+            case "FFA":
                 if(DEO.amount < this.draftConfig.ffaCivilizationMin || DEO.amount > this.draftConfig.ffaCivilizationMax) {
                     await DEO.interaction.reply({embeds: this.botlibEmbeds.error(`Поддерживается от ${this.draftConfig.ffaCivilizationMin} до ${this.draftConfig.ffaCivilizationMax} лидеров для одного игрока.`)});
                     return false;
                 }
                 break;
-            case "teamers":
+            case "Teamers":
                 if(DEO.amount < this.draftConfig.teamersCommandsMin || DEO.amount > this.draftConfig.teamersCommandsMax) {
                     await DEO.interaction.reply({embeds: this.botlibEmbeds.error(`Поддерживается от ${this.draftConfig.teamersCommandsMin} до ${this.draftConfig.teamersCommandsMax} команд.`)});
                     return false
                 }
                 break;
-            case "blind":
+            case "Blind":
                 if(DEO.amount < this.draftConfig.blindCivilizationMin || DEO.amount > this.draftConfig.blindCivilizationMax){
                     await DEO.interaction.reply( {embeds: this.botlibEmbeds.error(`Поддерживается от ${this.draftConfig.blindCivilizationMin} до ${this.draftConfig.blindCivilizationMax} лидеров для одного игрока.`)});
                     return false;
@@ -78,7 +78,7 @@ export class DraftService{
 
     async getDraftFFA(interaction: CommandInteraction, amount: number, bans: string) {
         let draftEmbedObject = new DraftEmbedObject(interaction, amount, bans);
-        this.draftEmbedObjectRoutine.setType(draftEmbedObject,"ffa");
+        this.draftEmbedObjectRoutine.setType(draftEmbedObject,"FFA");
         if(!await this.checkDEO(draftEmbedObject))
             return;
         return await interaction.reply( {embeds: signEmbed(interaction, this.draftEmbeds.draftFFA(draftEmbedObject))});
@@ -86,7 +86,7 @@ export class DraftService{
 
     async getDraftTeamers(interaction: CommandInteraction, amount: number, bans: string) {
         let draftEmbedObject = new DraftEmbedObject(interaction, amount, bans);
-        this.draftEmbedObjectRoutine.setType(draftEmbedObject,"teamers");
+        this.draftEmbedObjectRoutine.setType(draftEmbedObject,"Teamers");
         if(!await this.checkDEO(draftEmbedObject))
             return;
         return interaction.reply({embeds: signEmbed(interaction, this.draftEmbeds.draftTeamers(draftEmbedObject))});
@@ -94,7 +94,7 @@ export class DraftService{
 
     async getDraftBlind(interaction: CommandInteraction, amount: number, bans: string) {
         let draftEmbedObject = new DraftEmbedObject(interaction, amount, bans);
-        this.draftEmbedObjectRoutine.setType(draftEmbedObject,"blind");
+        this.draftEmbedObjectRoutine.setType(draftEmbedObject,"Blind");
         if(!await this.checkDEO(draftEmbedObject))
             return;
 
@@ -142,13 +142,13 @@ export class DraftService{
         draftEmbedObject.redraftResult = -1;
         this.draftEmbedObjectRoutine.setType(draftEmbedObject, draftEmbedObject.type);
         switch(draftEmbedObject.type){
-            case "ffa":
+            case "FFA":
                 msgArray.push(this.draftEmbeds.draftFFA(draftEmbedObject));
                 return await draftEmbedObject.interaction.editReply({embeds: signEmbed(interaction, msgArray), components: []});
-            case "teamers":
+            case "Teamers":
                 msgArray = msgArray.concat(this.draftEmbeds.draftTeamers(draftEmbedObject));
                 return await draftEmbedObject.interaction.editReply({embeds: signEmbed(interaction, msgArray), components: []});
-            case "blind":
+            case "Blind":
                 msgArray.push(this.draftEmbeds.draftBlindProcessing(draftEmbedObject));
                 draftEmbedObject.isProcessing = true;
                 try{
@@ -165,7 +165,11 @@ export class DraftService{
                     });
                 } catch (blindError) {
                     let user: User = draftEmbedObject.users[draftEmbedObject.pmArray.length];
-                    let msg: MessageEmbed[] = this.botlibEmbeds.error(`Один из игроков (${user.toString()}) заблокировал бота. Провести драфт невозможно.`);
+                    let msg: MessageEmbed[];
+                    if(user)
+                        msg = this.botlibEmbeds.error(`Один из игроков (${user.toString()}) заблокировал бота. Провести драфт невозможно.`);
+                    else
+                        msg = this.botlibEmbeds.error(`Неизвестная ошибка при исполнении драфта взакрытую.`);
                     draftEmbedObject.pmArray.forEach(x => x.delete());
                     this.draftEmbedObjectArray.splice(this.draftEmbedObjectArray.indexOf(draftEmbedObject), 1);
                     return await interaction.reply( {embeds: msg});
@@ -178,7 +182,7 @@ class DraftEmbedObjectRoutine{
     draftConfig: DraftConfig = new DraftConfig();
 
     // Генерирует драфт
-    setType(draftEmbedObject: DraftEmbedObject, type: "ffa" | "teamers" | "blind" | undefined): void{
+    setType(draftEmbedObject: DraftEmbedObject, type: "FFA" | "Teamers" | "Blind" | undefined): void{
         draftEmbedObject.type = type;
         draftEmbedObject.draft = [];
         draftEmbedObject.usersReadyBlind = new Array(draftEmbedObject.users.length).fill(false);
@@ -198,8 +202,8 @@ class DraftEmbedObjectRoutine{
                 draftEmbedObject.civilizations.splice(draftEmbedObject.civilizations.indexOf(ban), 1);
 
         switch(type){
-            case "blind":
-            case "ffa":
+            case "Blind":
+            case "FFA":
                 if(draftEmbedObject.amount == 0)
                     draftEmbedObject.amount = Math.min(Math.floor(draftEmbedObject.civilizations.length / draftEmbedObject.users.length), this.draftConfig.ffaCivilizationMax);
                 if((draftEmbedObject.users.length != 0) && (draftEmbedObject.amount <= this.draftConfig.ffaCivilizationMax) && (draftEmbedObject.amount * draftEmbedObject.users.length <= draftEmbedObject.civilizations.length))
@@ -209,7 +213,7 @@ class DraftEmbedObjectRoutine{
                             draftEmbedObject.draft[i].push(draftEmbedObject.civilizations.splice(Math.floor(Math.random()*draftEmbedObject.civilizations.length), 1)[0]);
                     }
                 break;
-            case "teamers":
+            case "Teamers":
                 if(draftEmbedObject.amount >= this.draftConfig.teamersCommandsMin && draftEmbedObject.amount <= this.draftConfig.teamersCommandsMax){
                     let civilizationPerTeam: number = Math.floor(draftEmbedObject.civilizations.length / draftEmbedObject.amount);
                     for(let i = 0; i < draftEmbedObject.amount; i++){

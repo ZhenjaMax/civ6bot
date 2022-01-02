@@ -15,7 +15,6 @@ export abstract class DraftButtonsResolver{
     async blindDraftButton(interaction: ButtonInteraction) {
         try {
             let msg = interaction.message as Message;
-
             let draftEmbedObject: DraftEmbedObject = this.draftService.draftEmbedObjectArray.filter((x: DraftEmbedObject) => (x.isProcessing) && (x.users.indexOf(interaction.user) != -1))[0];
             let userNumber: number = draftEmbedObject.users.indexOf(interaction.user);
             let civilizationNumber: number = Number(interaction.customId.slice(interaction.customId.indexOf("-") + 1));
@@ -26,11 +25,16 @@ export abstract class DraftButtonsResolver{
             await msg.edit({embeds: [this.draftEmbeds.draftBlindPmReady(draftEmbedObject, userNumber)], components: []});
             if((draftEmbedObject.usersReadyBlind.filter(x => x)).length == draftEmbedObject.users.length) {
                 draftEmbedObject.isProcessing = false;
-                await draftEmbedObject.interaction.editReply({embeds: [this.draftEmbeds.draftBlindProcessing(draftEmbedObject)], components: []});
+                if(!draftEmbedObject.blindChatMessage)
+                    await draftEmbedObject.interaction.editReply({embeds: [this.draftEmbeds.draftBlindProcessing(draftEmbedObject)], components: []});
+                else
+                    await draftEmbedObject.blindChatMessage.edit({embeds: [this.draftEmbeds.draftBlindProcessing(draftEmbedObject)], components: []})
                 return;
             }
-            await draftEmbedObject.interaction.editReply({embeds: [this.draftEmbeds.draftBlindProcessing(draftEmbedObject)]});
-            return;
+            if(!draftEmbedObject.blindChatMessage)
+                await draftEmbedObject.interaction.editReply({embeds: [this.draftEmbeds.draftBlindProcessing(draftEmbedObject)]});
+            else
+                await draftEmbedObject.blindChatMessage.edit({embeds: [this.draftEmbeds.draftBlindProcessing(draftEmbedObject)]})
         } catch (buttonError) {
             let user: User = interaction.user;
             let dm: DMChannel = await user.createDM();
@@ -90,11 +94,14 @@ export abstract class DraftButtonsResolver{
     async blindDelete(interaction: ButtonInteraction){
         let draftEmbedObject: DraftEmbedObject = this.draftService.draftEmbedObjectArray.filter((x: DraftEmbedObject) => (x.isProcessing) && (x.users.indexOf(interaction.user) != -1))[0];
         if(!draftEmbedObject)
-            return interaction.reply({embeds: this.botlibEmbeds.error("Вы не являетесь автором драфта."), ephemeral: true});
+            return await interaction.reply({embeds: this.botlibEmbeds.error("Вы не являетесь автором драфта."), ephemeral: true});
         if((draftEmbedObject.interaction.user != interaction.user) || (draftEmbedObject.interaction.guildId != interaction.guildId))
-            return interaction.reply({embeds: this.botlibEmbeds.error("Вы не являетесь автором драфта."), ephemeral: true});
+            return await interaction.reply({embeds: this.botlibEmbeds.error("Вы не являетесь автором драфта."), ephemeral: true});
         this.draftService.draftEmbedObjectArray.splice(this.draftService.draftEmbedObjectArray.indexOf(draftEmbedObject), 1);
-        await draftEmbedObject.interaction.deleteReply();
+        if(draftEmbedObject.blindChatMessage)
+            await draftEmbedObject.blindChatMessage.delete();
+        else
+            await draftEmbedObject.interaction.deleteReply();
         for(let i in draftEmbedObject.pmArray)
             await draftEmbedObject.pmArray[i].delete();
     }

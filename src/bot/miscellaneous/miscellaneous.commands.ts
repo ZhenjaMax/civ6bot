@@ -30,4 +30,10 @@ export abstract class MiscellaneousCommands {
         @SlashOption("пользователь", {type: "USER", description: "по умолчанию - изображение автора"}) member: GuildMember,
         interaction: CommandInteraction
     ) { await this.miscellaneousService.getAvatar(interaction, member) }
+
+    @Slash("vote", {description: "Запустить опрос"})
+    async vote(
+        @SlashOption("опрос", {type: "STRING", description: "содержание", required: true}) voteContent: string,
+        interaction: CommandInteraction
+    ) { await this.miscellaneousService.getVote(interaction, voteContent) }
 }

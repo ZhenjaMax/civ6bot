@@ -1,14 +1,16 @@
-import {CommandInteraction, GuildMember, MessageEmbed} from "discord.js";
+import {CommandInteraction, GuildMember, Message, MessageEmbed} from "discord.js";
 const fetch = require('node-fetch');
 
 import {MiscellaneousEmbeds } from "./miscellaneous.embeds";
 import {BotlibEmbeds, signEmbed} from "../../botlib/botlib.embeds";
 import {MiscellaneousConfig} from "./miscellaneous.config";
+import {BotlibEmojis} from "../../botlib/botlib.emojis";
 
 export class MiscellaneousService {
     miscellaneousEmbeds: MiscellaneousEmbeds = new MiscellaneousEmbeds();
     miscellaneousConfig: MiscellaneousConfig = new MiscellaneousConfig();
     botlibEmbeds: BotlibEmbeds = new BotlibEmbeds();
+    botlibEmojis: BotlibEmojis = new BotlibEmojis();
 
     private static _instance: MiscellaneousService;
     private constructor() {}
@@ -57,5 +59,14 @@ export class MiscellaneousService {
         return await interaction.reply({
             embeds: signEmbed(interaction, msg)
         });
+    }
+
+    async getVote(interaction: CommandInteraction, voteContent: string){
+        let msg = await interaction.reply({
+            embeds: signEmbed(interaction, this.miscellaneousEmbeds.vote(voteContent)),
+            fetchReply: true
+        }) as Message;
+        await msg.react(this.botlibEmojis.yes);
+        await msg.react(this.botlibEmojis.no);
     }
 }
