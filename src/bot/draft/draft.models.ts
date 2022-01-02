@@ -1,11 +1,12 @@
 import {CommandInteraction, GuildChannel, GuildMember, Message, User} from "discord.js";
 
 export class DraftEmbedObject {
-    type: "ffa" | "teamers" | "blind" | undefined;
+    type: "FFA" | "Teamers" | "Blind" | undefined;
     isProcessing: boolean = false;
     guildID: string;
 
     interaction: CommandInteraction;
+    blindChatMessage: Message | undefined;
     amount: number = 0;
     rawBans: string[] = [];
 
@@ -46,5 +47,10 @@ export class DraftEmbedObject {
                 }
             }
         }
+    }
+
+    initNew(users: User[], botsCount: number){
+        this.users = users;
+        this.botsCount = botsCount;
     }
 }

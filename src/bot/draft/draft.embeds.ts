@@ -28,7 +28,7 @@ export class DraftEmbeds{
                 errorsString += (error + ", ");
             errorsString = errorsString.slice(0, -2) + "\n";
         }
-        if(draftEmbedObject.type != "teamers"){
+        if(draftEmbedObject.type != "Teamers"){
             if(draftEmbedObject.botsCount != 0){
                 botsString += `🤖 **В канале присутству${
                     draftEmbedObject.botsCount == 1 ? "ет" : "ют"
@@ -37,7 +37,7 @@ export class DraftEmbeds{
                 }.**\nБоты были удалены из драфта.`
             }
         }
-        if(draftEmbedObject.type == "blind") {
+        if(draftEmbedObject.type == "Blind") {
             blindNoSwapString += "\n❗ **Свап цивилизациями запрещён при драфте взакрытую.**";
             if(draftEmbedObject.isProcessing)
                 blindProcessing += "\nИгроки выбирают цивилизации. Пожалуйста, подождите.";
@@ -168,7 +168,7 @@ export class DraftEmbeds{
                 break;
         }
         let authorUser: User = draftEmbedObject.interaction.user as User;
-        let titleString: string = `🔄 Редрафт #${draftEmbedObject.redraftCounter+1} ${draftEmbedObject.type == "ffa" ? "FFA" : (draftEmbedObject.type == "teamers" ? "Teamers" : "взакрытую" )}`;
+        let titleString: string = `🔄 Редрафт #${draftEmbedObject.redraftCounter+1} ${draftEmbedObject.type == "FFA" ? "FFA" : (draftEmbedObject.type == "Teamers" ? "Teamers" : "взакрытую" )}`;
 
         let yesRedraft: string = "", noRedraft: string = "", abstainedRedraft = "";
         for(let i in draftEmbedObject.redraftStatus)

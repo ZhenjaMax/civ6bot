@@ -11,45 +11,40 @@ export abstract class NewButtonsResolver{
     newEmbeds: NewEmbeds = new NewEmbeds();
     botlibEmbeds: BotlibEmbeds = new BotlibEmbeds();
 
-    @ButtonComponent(/new-\d+-\d+/)
-    async newOptionButton(interaction: ButtonInteraction) {
+    @ButtonComponent("new-delete")
+    async newDelete(interaction: ButtonInteraction){
         let currentNewVote: NewVote = this.newService.newVoteArray.filter((x: NewVote) => (x.isProcessing && (x.interaction.guildId == interaction.guildId)))[0];
-        if(!currentNewVote) {
+        if (!currentNewVote) {
             let msg = interaction.message as Message;
             return await msg.delete();
         }
-        let userIndex = currentNewVote.users.indexOf(interaction.user);
-        if(userIndex == -1)
-            return interaction.reply({embeds: this.botlibEmbeds.error("Вы не являетесь участником игры, в голосовании для которой вы пытаетесь принять участие."), ephemeral: true});
-        await interaction.deferUpdate();
-        let buttonID: string = interaction.customId.slice(4);
-        let voteIndex: number = Number(buttonID.slice(0, buttonID.indexOf("-")));
-        let optionIndex: number = Number(buttonID.slice(buttonID.indexOf("-")+1));
-        currentNewVote.newVoteObjects[voteIndex].updateVote(userIndex, optionIndex);
-        await currentNewVote.messages[voteIndex].edit({ embeds: [this.newEmbeds.voteForm(currentNewVote, voteIndex)]});
+        if(interaction.user.id != currentNewVote.interaction.user.id)
+            return interaction.reply({
+                embeds: this.botlibEmbeds.error("Вы не являетесь автором этого голосования."),
+                ephemeral: true
+            });
+        if(currentNewVote.isProcessing)
+            await currentNewVote.destroy();
     }
 
     @ButtonComponent("new-ready")
     async newPlayerReady(interaction: ButtonInteraction) {
         let currentNewVote: NewVote = this.newService.newVoteArray.filter((x: NewVote) => (x.isProcessing && (x.interaction.guildId == interaction.guildId)))[0];
-        if(!currentNewVote) {
+        if (!currentNewVote) {
             let msg = interaction.message as Message;
             return await msg.delete();
         }
         let userIndex = currentNewVote.users.indexOf(interaction.user);
-        if(userIndex == -1)
-            return interaction.reply({embeds: this.botlibEmbeds.error("Вы не являетесь участником игры, в голосовании для которой вы пытаетесь принять участие."), ephemeral: true});
+        if (userIndex == -1)
+            return interaction.reply({
+                embeds: this.botlibEmbeds.error("Вы не являетесь участником игры, в голосовании для которой вы пытаетесь принять участие."),
+                ephemeral: true
+            });
         await interaction.deferUpdate();
         currentNewVote.ready[userIndex] = 1;
-        await currentNewVote.messages[currentNewVote.messages.length-1].edit({embeds: [this.newEmbeds.readyForm(currentNewVote)]});
-        if(currentNewVote.ready.filter(x => x==1).length == currentNewVote.users.length){
-            currentNewVote.resolveAll();
-            for(let i: number = 0; i < currentNewVote.newVoteObjects.length; i++)
-                await currentNewVote.messages[i].edit({
-                    embeds: [this.newEmbeds.voteForm(currentNewVote, i)],
-                    components: []
-                });
-            await currentNewVote.messages[currentNewVote.messages.length-1].delete();
-        }
+        await currentNewVote.newVoteObjects[currentNewVote.newVoteObjects.length-1].message?.edit({embeds: [this.newEmbeds.readyForm(currentNewVote)]});
+        let readyCount: number = currentNewVote.ready.filter(x => x == 1).length;
+        if(readyCount == currentNewVote.users.length)
+            await this.newService.resolve(currentNewVote);
     }
 }

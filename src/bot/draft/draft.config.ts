@@ -86,10 +86,11 @@ export class DraftConfig{
         [28, 55],   // Монголия (2)
         [20, 54],   // Китай (2)
     ];
-    ffaCivilizationMin: number = 1;
-    ffaCivilizationMax: number = 16;
+
+    ffaCivilizationMin: number = 2;
+    ffaCivilizationMax: number = 4;
     teamersCommandsMin: number = 2;
     teamersCommandsMax: number = this.teamersThumbnailsURL.length;
     blindCivilizationMin: number = 2;
-    blindCivilizationMax: number = 16;
+    blindCivilizationMax: number = 4;
 }

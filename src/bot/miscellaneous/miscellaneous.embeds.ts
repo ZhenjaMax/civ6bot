@@ -43,10 +43,17 @@ export class MiscellaneousEmbeds {
             .setTitle("Решка! 🌑")
     }
 
-    random(valueDiceMax: number, valueDice: number) {
+    random(valueDiceMax: number, valueDice: number): MessageEmbed {
         return new MessageEmbed()
             .setAuthor(`Подбрасывание D${valueDiceMax}`)
             .setColor("#FF526C")
             .setTitle(`🎲 Выпало: ${valueDice}${(valueDice == valueDiceMax) ? "! 🔥" : "."}`)
+    }
+
+    vote(voteContent: string): MessageEmbed {
+        return new MessageEmbed()
+            .setTitle("🤔 Вопрос:")
+            .setColor("#80C0C0")
+            .setDescription(voteContent);
     }
 }

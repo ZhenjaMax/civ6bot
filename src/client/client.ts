@@ -11,6 +11,8 @@ export class ClientSingleton{
         ],
         botGuilds: [(client) => client.guilds.cache.map((guild) => guild.id)],
         silent: true,
+        shards: "auto",
+        restTimeOffset: 0
     });
 
     private static _instance: ClientSingleton;
