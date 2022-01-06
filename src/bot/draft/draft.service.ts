@@ -4,6 +4,7 @@ import {BotlibEmbeds, signEmbed} from "../../botlib/botlib.embeds";
 import {DraftEmbeds} from "./draft.embeds";
 import {DraftConfig} from "./draft.config";
 import {DraftButtons} from "./buttons/draft.buttons";
+import {BotlibCivilizations} from "../../botlib/botlib.civilizations";
 
 export class DraftService{
     draftEmbedObjectArray: DraftEmbedObject[] = [];
@@ -180,6 +181,7 @@ export class DraftService{
 
 class DraftEmbedObjectRoutine{
     draftConfig: DraftConfig = new DraftConfig();
+    botlibCivilizations: BotlibCivilizations = new BotlibCivilizations();
 
     // Генерирует драфт
     setType(draftEmbedObject: DraftEmbedObject, type: "FFA" | "Teamers" | "Blind" | undefined): void{
@@ -188,11 +190,10 @@ class DraftEmbedObjectRoutine{
         draftEmbedObject.usersReadyBlind = new Array(draftEmbedObject.users.length).fill(false);
         draftEmbedObject.redraftStatus = new Array(draftEmbedObject.users.length).fill(-1);
         draftEmbedObject.pmArray = [];
-
-        draftEmbedObject.civilizations = Array.from(this.draftConfig.civilizations.values());
+        draftEmbedObject.civilizations = Array.from(this.botlibCivilizations.civilizations.values());
         for(let rawBan of draftEmbedObject.rawBans){
-            if(this.draftConfig.civilizations.has(rawBan))
-                draftEmbedObject.bans.push(this.draftConfig.civilizations.get(rawBan) as string);
+            if(this.botlibCivilizations.civilizations.has(rawBan))
+                draftEmbedObject.bans.push(this.botlibCivilizations.civilizations.get(rawBan) as string);
             else if (rawBan != '')
                 draftEmbedObject.errors.push(rawBan);
         }
@@ -246,7 +247,7 @@ class DraftEmbedObjectRoutine{
     }
 
     private getDraftSwapIndex(draft: string[]): number{
-        let civilizations: string[] = Array.from(this.draftConfig.civilizations.values());
+        let civilizations: string[] = Array.from(this.botlibCivilizations.civilizations.values());
         let swapIndex: number = -1;
         for(let pair of this.draftConfig.indexNationPairArray){
             swapIndex = function(draft, pair){

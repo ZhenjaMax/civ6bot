@@ -1,8 +1,6 @@
 import {CommandInteraction, GuildChannel, GuildMember, Message, MessageReaction, ReactionCollector, User} from "discord.js";
-import {DraftConfig} from "../draft/draft.config";
-import {NewEmbeds} from "./new.embeds";
-import {AdapterNew} from "../adapters/adapter.new";
-import {NewConfig} from "./new.config";
+import {BotlibEmojis} from "../../botlib/botlib.emojis";
+import {BotlibCivilizations} from "../../botlib/botlib.civilizations";
 
 export class NewVote{
     type: "FFA" | "Teamers";
@@ -43,7 +41,7 @@ export class NewVote{
             await this.newVoteObjects[i].destroy();
     }
 
-    private async getValues() {
+    async resolve() {
         for(let i: number = 0; i < this.newVoteObjects.length; i++)
             await this.newVoteObjects[i].resolve();
         let commonObject: NewVoteObjectCommon, captainObject: NewVoteObjectCaptains, draftObject: NewVoteObjectDraft;
@@ -58,22 +56,6 @@ export class NewVote{
         }
         draftObject = this.newVoteObjects[this.newVoteObjects.length-2] as NewVoteObjectDraft;
         this.bans = draftObject.resultBansString;
-    }
-
-    async resolve(){
-        this.isProcessing = false;
-        await this.getValues();
-
-        let newEmbeds: NewEmbeds = new NewEmbeds();
-        await this.newVoteObjects[this.newVoteObjects.length-1].message?.edit({
-            embeds: [newEmbeds.resolveForm(this)],
-            components: []
-        });
-        let adapterNew: AdapterNew = new AdapterNew();
-        await adapterNew.getDraftFromNew(this);
-
-        for(let i: number = this.newVoteObjects.length-2; i >= 0; i--)
-            await this.newVoteObjects[i].destroy();
     }
 
     getContent(): string{
@@ -175,8 +157,8 @@ export class NewVoteObjectCaptains extends NewVoteObjectBase{
 
     constructor(header: string, users: User[]) {
         super(header, [], []);
-        let newConfig: NewConfig = new NewConfig();
-        this.emojis = newConfig.captainEmojis.slice(0, users.length);
+        let botlibEmojis: BotlibEmojis = new BotlibEmojis();
+        this.emojis = botlibEmojis.letters.slice(0, users.length);
         for(let i: number = 0; i < users.length; i++)
             this.options.push(`${this.emojis[i]} ${users[i].toString()}`);
     }
@@ -216,9 +198,9 @@ export class NewVoteObjectDraft extends NewVoteObjectBase{
 
     constructor(header: string, usersCount: number) {
         super(header, [], []);
-        let draftConfig: DraftConfig = new DraftConfig();
+        let botlibCivilizations: BotlibCivilizations = new BotlibCivilizations();
         this.usersForBanMin = Math.floor((usersCount+1)/2);
-        this.civilizations = draftConfig.civilizations;
+        this.civilizations = botlibCivilizations.civilizations;
         this.emojis = Array.from(this.civilizations.keys());
         this.options = Array.from(this.civilizations.values());
     }

@@ -24,7 +24,7 @@ export class DraftEmbedObject {
     redraftCounter: number = 0;
     redraftMinAmount: number = 0;
     redraftStatus: number[] = [];   // -1, 0, 1
-    redraftResult: number = -1; // -1, 0, 1
+    redraftResult: number = -1;     // -1, 0, 1
 
     constructor(interaction: CommandInteraction, amount: number, strBans: string){
         this.interaction = interaction;
@@ -33,18 +33,17 @@ export class DraftEmbedObject {
         this.rawBans = strBans
             .toLowerCase()
             .replaceAll(">", "> ")
-            .split(/(?:\n| )+/);
-
+            .split(/[\n ]+/);
         let member = interaction.member as GuildMember;
         let channel = member.voice.channel as GuildChannel;
-        if(channel != null){
-            this.users = Array.from(channel.members.values()).map((member): User => {return member.user});
-            for(let i = 0; i < this.users.length; i++){
-                if(this.users[i].bot){
-                    this.botsCount++;
-                    this.users.splice(i, 1);
-                    i--;
-                }
+        if(channel == null)
+            return;
+        this.users = Array.from(channel.members.values()).map((member): User => {return member.user});
+        for(let i = 0; i < this.users.length; i++){
+            if(this.users[i].bot){
+                this.botsCount++;
+                this.users.splice(i, 1);
+                i--;
             }
         }
     }
