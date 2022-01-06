@@ -18,8 +18,9 @@ export class NewEmbeds{
             fieldValueReady = "—";
         if(fieldValueNotReady == "")
             fieldValueNotReady = "—";
-        embedMsg.addField("Не готов", fieldValueNotReady, true);
-        embedMsg.addField("Готов", fieldValueReady, true);
+        embedMsg
+            .addField("Не готов", fieldValueNotReady, true)
+            .addField("Готов", fieldValueReady, true);
         return embedMsg;
     }
 

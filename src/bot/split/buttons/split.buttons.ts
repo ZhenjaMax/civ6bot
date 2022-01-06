@@ -1,23 +1,18 @@
-import {MessageActionRow, MessageButton} from "discord.js";
 import {BotlibEmojis} from "../../../botlib/botlib.emojis";
+import {MessageActionRow, MessageButton} from "discord.js";
 
-export class NewButtons{
+export class SplitButtons{
     botlibEmojis: BotlibEmojis = new BotlibEmojis();
 
-    newPlayersRow(){
+    splitRow(){
         let rows: MessageActionRow[] = [];
         let buttonArray: MessageButton[] = [];
         buttonArray.push(
             new MessageButton()
-                .setEmoji("⚡")
-                .setLabel("Готов!")
-                .setStyle("PRIMARY")
-                .setCustomId(`new-ready`),
-            new MessageButton()
                 .setEmoji(this.botlibEmojis.no)
-                .setLabel("Удалить (для автора)")
+                .setLabel("Удалить (для автора и капитанов)")
                 .setStyle("DANGER")
-                .setCustomId("new-delete")
+                .setCustomId("split-delete")
         );
         rows.push(new MessageActionRow().addComponents(buttonArray));
         return rows;

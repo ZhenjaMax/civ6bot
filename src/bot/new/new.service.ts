@@ -5,15 +5,17 @@ import {NewConfig} from "./new.config";
 import {NewButtons} from "./buttons/new.buttons";
 import * as schedule from "node-schedule";
 import {NewEmbeds} from "./new.embeds";
-import {AdapterNew} from "../adapters/adapter.new";
+import {AdapterNewDraft} from "../adapters/adapter.new.draft";
+import {AdapterNewSplit} from "../adapters/adapter.new.split";
 
 export class NewService{
     botlibEmbeds: BotlibEmbeds = new BotlibEmbeds();
     newConfig: NewConfig = new NewConfig();
     newButtons: NewButtons = new NewButtons();
-    newVoteArray: NewVote[] = [];
     newEmbeds: NewEmbeds = new NewEmbeds();
-    adapterNew: AdapterNew = new AdapterNew();
+    newVoteArray: NewVote[] = [];
+    adapterNewDraft: AdapterNewDraft = new AdapterNewDraft();
+    adapterNewSplit: AdapterNewSplit = new AdapterNewSplit();
 
     private static _instance: NewService;
     private constructor() {}
@@ -30,27 +32,29 @@ export class NewService{
             await newVote.interaction.reply({embeds: this.botlibEmbeds.error(`Для выполнения этой команды необходимо минимум ${this.newConfig.newPlayersMin} игрока.`)});
             return false;
         }
-        let currentNewVote: NewVote | undefined = this.newVoteArray.filter(x => ((x.isProcessing) && (x.guildID == newVote.interaction.guildId)))[0];
-        if(currentNewVote != undefined){
-            await newVote.interaction.reply({embeds: this.botlibEmbeds.error("В данный момент уже проводится голосование. Пожалуйста, подождите."), ephemeral: true});
-            return false;
+        let currentNewVote: NewVote | undefined = this.newVoteArray.filter(x => (x.guildID == newVote.interaction.guildId))[0];
+        if(currentNewVote){
+            if(currentNewVote.isProcessing){
+                await newVote.interaction.reply({embeds: this.botlibEmbeds.error("В данный момент уже проводится голосование. Пожалуйста, подождите."), ephemeral: true});
+                return false;
+            }
+            this.newVoteArray.splice(this.newVoteArray.indexOf(currentNewVote), 1);
         }
+        this.newVoteArray.push(newVote);
         return true;
     }
 
-    async getNew(interaction: CommandInteraction, type: "FFA" | "Teamers"){
+    async getNew(interaction: CommandInteraction, type: "FFA" | "Teamers") {
         let currentNewVote = new NewVote(interaction, type);
-        if(!await this.checkNew(currentNewVote))
+        if (!await this.checkNew(currentNewVote))
             return;
-        this.newVoteArray.push(currentNewVote);
-
         schedule.scheduleJob(new Date().setTime(new Date().getTime() + this.newConfig.votingTime), scheduleNew);
         let options: string[][] = (currentNewVote.type == "FFA") ? this.newConfig.newOptionsFFA : this.newConfig.newOptionsTeamers;
         let emojis: string[][] = (currentNewVote.type == "FFA") ? this.newConfig.newOptionHeadersEmojisFFA : this.newConfig.newOptionHeadersEmojisTeamers;
 
-        for(let i in options)
+        for (let i in options)
             currentNewVote.newVoteObjects.push(new NewVoteObjectCommon(options[i][0], options[i].slice(1), emojis[i]));
-        if(currentNewVote.type == "Teamers")
+        if (currentNewVote.type == "Teamers")
             currentNewVote.newVoteObjects.push(new NewVoteObjectCaptains(this.newConfig.newCaptainTeamers, currentNewVote.users));
         currentNewVote.newVoteObjects.push(new NewVoteObjectDraft(this.newConfig.newBan, currentNewVote.users.length));
         currentNewVote.newVoteObjects.push(new NewVoteObjectBlank("")); // "Готов"
@@ -59,24 +63,26 @@ export class NewService{
             content: currentNewVote.newVoteObjects[0].getContent(),
             fetchReply: true
         }) as Message;
-        let collector: ReactionCollector = msg.createReactionCollector( {time: this.newConfig.votingTime});
+        let collector: ReactionCollector = msg.createReactionCollector({time: this.newConfig.votingTime});
         currentNewVote.newVoteObjects[0].init(msg, collector);
-        collector.on("collect", async (reaction: MessageReaction, user: User) => {await collectorNew(reaction, user);});
-        for(let emoji of currentNewVote.newVoteObjects[0].emojis)
+        collector.on("collect", async (reaction: MessageReaction, user: User) => {await collectorNew(reaction, user)});
+        for (let emoji of currentNewVote.newVoteObjects[0].emojis)
             await currentNewVote.newVoteObjects[0].message?.react(emoji);
 
         let channel: TextChannel = msg.channel as TextChannel;
-        for(let i: number = 1; i < currentNewVote.newVoteObjects.length-1; i++){
+        for (let i: number = 1; i < currentNewVote.newVoteObjects.length-1; i++) {
             msg = await channel.send({
                 content: currentNewVote.newVoteObjects[i].getContent()
             }) as Message;
-            collector = msg.createReactionCollector( {time: this.newConfig.votingTime});
+            collector = msg.createReactionCollector({time: this.newConfig.votingTime});
             currentNewVote.newVoteObjects[i].init(msg, collector);
-            collector.on("collect", async (reaction: MessageReaction, user: User) => {await collectorNew(reaction, user);});
-            if(i == currentNewVote.newVoteObjects.length-2)
+            collector.on("collect", async (reaction: MessageReaction, user: User) => {
+                await collectorNew(reaction, user);
+            });
+            if (i == currentNewVote.newVoteObjects.length-2)
                 await currentNewVote.newVoteObjects[i].message?.react(this.newConfig.newBanMessageEmoji);
             else
-                for(let emoji of currentNewVote.newVoteObjects[i].emojis)
+                for (let emoji of currentNewVote.newVoteObjects[i].emojis)
                     await currentNewVote.newVoteObjects[i].message?.react(emoji);
         }
 
@@ -84,9 +90,13 @@ export class NewService{
             embeds: [this.newEmbeds.readyForm(currentNewVote)],
             components: this.newButtons.newPlayersRow()
         });
-        collector = msg.createReactionCollector( {time: this.newConfig.votingTime});
-        currentNewVote.newVoteObjects[currentNewVote.newVoteObjects.length-1].init(msg, collector);
-        collector.on("collect", async (reaction: MessageReaction, user: User) => {await collectorNew(reaction, user);});
+        collector = msg.createReactionCollector({time: this.newConfig.votingTime});
+        currentNewVote.newVoteObjects[currentNewVote.newVoteObjects.length - 1].init(msg, collector);
+        collector.on("collect", async (reaction: MessageReaction, user: User) => {await collectorNew(reaction, user)});
+        for (let user of currentNewVote.users)
+            if (user != currentNewVote.interaction.user)
+                await user.send({embeds: this.botlibEmbeds.notify(`Началось голосование для новой игры в режиме ${currentNewVote.type}. На голосование можно перейти по ссылке ниже.
+                https://discordapp.com/channels/${currentNewVote.guildID}/${currentNewVote.newVoteObjects[0].message?.channel.id}/${currentNewVote.newVoteObjects[0].message?.id}`)});
     }
 
     async resolve(currentNewVote: NewVote){
@@ -94,6 +104,13 @@ export class NewService{
             return;
         currentNewVote.isProcessing = false;
         await currentNewVote.resolve();
+        await currentNewVote.interaction.channel?.send({embeds: [this.newEmbeds.resolveForm(currentNewVote)]});
+        if(currentNewVote.type == "Teamers")
+            await this.adapterNewSplit.getSplit(currentNewVote);
+        else
+            await this.adapterNewDraft.getDraftFromNew(currentNewVote);
+        for(let i: number = currentNewVote.newVoteObjects.length-1; i >= 0; i--)
+            await currentNewVote.newVoteObjects[i].destroy();
     }
 }
 
@@ -110,8 +127,7 @@ export async function collectorNew(reaction: MessageReaction, user: User){
     if(user.bot)
         return;
     let msg: Message = reaction.message as Message;
-    let currentVote: NewVote | undefined = NewService.Instance.newVoteArray.filter((x) => x.isProcessing && (x.interaction.guild?.id == msg.guild?.id))[0];
-
+    let currentVote: NewVote | undefined = NewService.Instance.newVoteArray.filter(x => x.isProcessing && (x.interaction.guild?.id == msg.guild?.id))[0];
     if(!currentVote)
         return await msg.delete();
     let voteIndex: number = currentVote.newVoteObjects.map(x => x.message?.id).indexOf(msg.id);
