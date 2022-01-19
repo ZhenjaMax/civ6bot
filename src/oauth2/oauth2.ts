@@ -1,5 +1,7 @@
+// noinspection HttpUrlsUsage
+
 import express from 'express';
-import {UserSteamService} from "../db/services/userSteam.service";
+import {IUserSteam, UserSteamService} from "../db/models/db.UserSteam";
 const fetch = require('node-fetch');
 
 const app = express();
@@ -39,20 +41,18 @@ app.get('/', async (request, response) => {
         const userData = await userRaw.json();
         const userConnectionsData: any[] = await userConnectionsRaw.json();
 
-        // Если нет, то будет ошибка,
-        // потому что всё в блоке try-catch
-        const userID: string = userData.id;
-        const userSteamID: string = userConnectionsData.filter((x) => {return x.type == 'steam'})[0].id;
-
+        // Если нет, то будет ошибка, потому что всё в блоке try-catch
         let userSteamService: UserSteamService = new UserSteamService();
-        if(await userSteamService.hasSteamID(userSteamID))
-            return response.send("error: \"steam_id already exists\"");
+        let userSteam: IUserSteam = {id: userData.id, steamID: userConnectionsData.filter((x) => {return x.type == 'steam'})[0].id};
 
-        if(!(await userSteamService.update(userID, userSteamID))) {
-            await userSteamService.create(userID, userSteamID);
-            return response.send(`status=success\nuser_id=${userID},\nsteam_id=${userSteamID}`);
-        } else
-            return response.send(`status=updated\nuser_id=${userID},\nsteam_id=${userSteamID}`);
+        if(await userSteamService.hasSteamID(userSteam.steamID))
+            return response.send("error: steam_id already exists");
+
+        if(await userSteamService.update(userSteam))
+            return response.send(`status=updated\n user_id=${userSteam.id},\n steam_id=${userSteam.steamID}`);
+
+        await userSteamService.create(userSteam.id, userSteam.steamID);
+        return response.send(`status=success\n user_id=${userSteam.id},\n steam_id=${userSteam.steamID}`);
     } catch (e) {
         return response.send("error: no discord-steam connection");
     }

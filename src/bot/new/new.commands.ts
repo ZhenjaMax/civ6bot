@@ -4,7 +4,7 @@ import {NewService} from "./new.service";
 
 @Discord()
 @SlashGroup("new", "Голосование для начала игры")
-export class NewCommands{
+export abstract class NewCommands{
     newService: NewService = NewService.Instance;
 
     @Slash("ffa", { description: "Начало игры FFA" })

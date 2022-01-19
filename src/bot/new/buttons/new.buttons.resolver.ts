@@ -19,10 +19,7 @@ export abstract class NewButtonsResolver{
             return await msg.delete();
         }
         if(interaction.user.id != currentNewVote.interaction.user.id)
-            return interaction.reply({
-                embeds: this.botlibEmbeds.error("Вы не являетесь автором этого голосования."),
-                ephemeral: true
-            });
+            return interaction.reply({embeds: this.botlibEmbeds.error("Вы не являетесь автором этого голосования."), ephemeral: true});
         if(currentNewVote.isProcessing)
             await currentNewVote.destroy();
     }
@@ -36,10 +33,7 @@ export abstract class NewButtonsResolver{
         }
         let userIndex = currentNewVote.users.indexOf(interaction.user);
         if (userIndex == -1)
-            return interaction.reply({
-                embeds: this.botlibEmbeds.error("Вы не являетесь участником игры, в голосовании для которой вы пытаетесь принять участие."),
-                ephemeral: true
-            });
+            return interaction.reply({embeds: this.botlibEmbeds.error("Вы не являетесь участником игры, в голосовании для которой вы пытаетесь принять участие."), ephemeral: true});
         await interaction.deferUpdate();
         currentNewVote.ready[userIndex] = 1;
         await currentNewVote.newVoteObjects[currentNewVote.newVoteObjects.length-1].message?.edit({embeds: [this.newEmbeds.readyForm(currentNewVote)]});

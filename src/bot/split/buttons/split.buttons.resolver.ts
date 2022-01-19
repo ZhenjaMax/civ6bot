@@ -21,6 +21,6 @@ export abstract class SplitButtonsResolver{
             await interaction.deferUpdate();
             return await msg.delete();
         } else
-            return await interaction.reply({embeds: this.botlibEmbeds.error("Вы не являетесь капитаном команды или автором.")});
+            return await interaction.reply({embeds: this.botlibEmbeds.error("Вы не являетесь капитаном команды или автором."), ephemeral: true});
     }
 }

@@ -4,9 +4,7 @@ export class BaseService{
             return undefined;
         if(Array.isArray(inputValue)) {
             let returnValue: any = [];
-            inputValue.forEach(function (x: any) {
-                returnValue.push(x.dataValues)
-            });
+            inputValue.forEach(function (x: any) {returnValue.push(x.dataValues)});
             return returnValue;
         } else
             return inputValue.dataValues;

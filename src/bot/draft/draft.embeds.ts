@@ -158,7 +158,7 @@ export class DraftEmbeds{
         let embedMsg: MessageEmbed = new MessageEmbed();
         switch(draftEmbedObject.redraftResult){
             case -1:
-                descriptionString += `Предлагается провести редрафт.\nДля успешного редрафта необходимо **${draftEmbedObject.redraftMinAmount}/${draftEmbedObject.users.length} голосов** ${this.botlibEmojis.yes} **\"за\".**\n\n⏰ **На голосование отводится 90 секунд!**`;
+                descriptionString += `Предлагается провести редрафт.\nДля успешного редрафта необходимо **${draftEmbedObject.redraftMinAmount}/${draftEmbedObject.users.length} голосов** ${this.botlibEmojis.yes} **\"за\".**`; //⏰ **На голосование отводится 90 секунд!**
                 break;
             case 0:
                 descriptionString = `${this.botlibEmojis.no} **Редрафт отклонён.**`;
