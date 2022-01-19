@@ -1,13 +1,4 @@
-import {
-    ButtonInteraction,
-    Collection,
-    CommandInteraction,
-    Guild,
-    GuildMember,
-    MessageEmbed,
-    Role,
-    TextChannel
-} from "discord.js";
+import {ButtonInteraction, Collection, CommandInteraction, Guild, GuildMember, MessageEmbed, Role, TextChannel} from "discord.js";
 import {IUserPunishment, UserPunishmentService} from "../../db/models/db.UserPunishment";
 import {ModerationConfig} from "./moderation.config";
 import {BotlibTimings} from "../../botlib/botlib.timings";
@@ -295,7 +286,7 @@ export class ModerationService{
 
         let client: Client = ClientSingleton.Instance.client;
         let guild: Guild = await client.guilds.fetch(userPunishment.guildID);
-        let msg: MessageEmbed[] = [this.moderationEmbeds.unmuteVoiceAuto(userPunishment.userID)];
+        let msg: MessageEmbed[] = [this.moderationEmbeds.unmuteChatAuto(userPunishment.userID)];
         let channel: TextChannel = await guild.channels.fetch(this.moderationConfig.punishmentChannelID) as TextChannel;
         await channel.send({embeds: msg});
         try{

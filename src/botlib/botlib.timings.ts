@@ -25,15 +25,14 @@ export class BotlibTimings{
 
     getTimeMs(timeType: string, timeAmount: number): number{
         let timeTypeUnit: number|undefined = this.duration.get(timeType);
-        if(!timeTypeUnit)
-            return 0;
-        return timeTypeUnit*timeAmount;
+        return (timeTypeUnit) ? timeTypeUnit*timeAmount : 0;
     }
 
     // Московское время в форме строки; исходный объект не изменяется
+    // Почему-то не работает корректно
     getDateString(date: Date): string{
-        let timezoneDate: Date = new Date(date.getTime() + this.getTimeMs("h", this.timeDelta))
-        return `${timezoneDate.getDate()} ${this.months[timezoneDate.getMonth()]} ${timezoneDate.getFullYear()} года,
-        ${((timezoneDate.getHours())%24<10) ? "0" : ""}${timezoneDate.getHours()%24}:${(timezoneDate.getMinutes()<10) ? "0" : ""}${timezoneDate.getMinutes()} МСК`;
+        //let timezoneDate: Date = new Date(date.getTime() + this.getTimeMs("h", this.timeDelta))
+        //return `${timezoneDate.getDate()} ${this.months[timezoneDate.getMonth()]} ${timezoneDate.getFullYear()} года, ${((timezoneDate.getHours())%24<10) ? "0" : ""}${timezoneDate.getHours()%24}:${(timezoneDate.getMinutes()<10) ? "0" : ""}${timezoneDate.getMinutes()} МСК`;
+        return `${date.getDate()} ${this.months[date.getMonth()]} ${date.getFullYear()} года, ${((date.getHours())%24<10) ? "0" : ""}${date.getHours()%24}:${(date.getMinutes()<10) ? "0" : ""}${date.getMinutes()} МСК`;
     }
 }
