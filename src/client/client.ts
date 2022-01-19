@@ -31,7 +31,6 @@ export class ClientSingleton{
         this.client.once("ready", async () => {
             await this.client.initApplicationCommands({global: { log: true }});
             await this.client.initApplicationPermissions(true);  // init permissions; enabled log to see changes
-            await this.adapterClientModeration.checkOnReady();
             try{
                 await this.adapterClientModeration.checkOnReady();
             } catch (readyError) {
