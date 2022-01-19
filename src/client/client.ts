@@ -32,7 +32,13 @@ export class ClientSingleton{
             await this.client.initApplicationCommands({global: { log: true }});
             await this.client.initApplicationPermissions(true);  // init permissions; enabled log to see changes
             await this.adapterClientModeration.checkOnReady();
-            console.log("Civilization VI bot started");
+            try{
+                await this.adapterClientModeration.checkOnReady();
+            } catch (readyError) {
+                console.log("Check members error, pass")
+            } finally {
+                console.log("Civilization VI bot started");
+            }
         });
         this.client.on("interactionCreate", (interaction: Interaction) => {this.client.executeInteraction(interaction);});
         this.client.on("guildMemberAdd", (member) => {this.adapterClientModeration.checkMember(member)});
