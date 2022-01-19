@@ -1,13 +1,13 @@
-import {Sequelize} from "sequelize";
+import {Options} from "sequelize";
 
-export const database = new Sequelize(
-    "db",
-    "root",
-    "password",
-    {
+export class DbConfig{
+    database: string = "db";
+    username: string = "root";
+    password: string = "password";
+    options: Options = {
         host: "localhost",
         logging: false,
         dialect: "sqlite",
         storage: './db.sqlite',
-    }
-);
+    };
+}

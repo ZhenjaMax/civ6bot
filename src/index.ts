@@ -4,8 +4,7 @@ import {importx} from "@discordx/importer";
 dotenv.config();
 
 const client = ClientSingleton.Instance;
-importx(
-    __dirname + "/bot/*/*.commands.{js,ts}",
+importx(__dirname + "/bot/*/*.commands.{js,ts}",
     __dirname + "/bot/*/buttons/*.buttons.resolver.{js,ts}",
     __dirname + "/db/db.initialize.{js,ts}",
     __dirname + "/oauth2/oauth2.{js,ts}"

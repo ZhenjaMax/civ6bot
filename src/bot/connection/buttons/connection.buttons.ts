@@ -1,8 +1,8 @@
 import {MessageActionRow, MessageButton} from "discord.js";
 
 export class ConnectionButtons{
-    // Не работает
-    // не поддерживает URI steam://
+    // Не работает - не поддерживает URI steam://
+    /*
     linkButton(steamLobbyURL: string, isLicense: boolean): MessageActionRow[]{
         let rows: MessageActionRow[] = [];
         let buttonArray: MessageButton[] = [];
@@ -16,7 +16,8 @@ export class ConnectionButtons{
         rows.push(new MessageActionRow().addComponents(buttonArray));
         return rows;
     }
-
+    */
+    
     connectButton(connectLinkURL: string): MessageActionRow[]{
         let rows: MessageActionRow[] = [];
         let buttonArray: MessageButton[] = [];

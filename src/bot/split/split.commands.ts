@@ -4,7 +4,7 @@ import {CommandInteraction, GuildMember} from "discord.js";
 
 @Discord()
 @SlashGroup("split", "Голосование для начала игры")
-export class SplitCommands{
+export abstract class SplitCommands{
     splitService: SplitService = SplitService.Instance;
 
     @Slash("classic", {description: "first, double, далее по очереди"})

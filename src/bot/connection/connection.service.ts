@@ -1,12 +1,11 @@
 import {CommandInteraction} from "discord.js";
 import {BotlibEmbeds, signEmbed} from "../../botlib/botlib.embeds";
-import {UserSteamService} from "../../db/services/userSteam.service";
+import {IUserSteam, UserSteamService} from "../../db/models/db.UserSteam";
 import {ConnectionEmbeds} from "./connection.embeds";
 import {ConnectionButtons} from "./buttons/connection.buttons";
 import {ConnectionConfig} from "./connection.config";
 const fetch = require('node-fetch');
 
-// Singleton
 export class ConnectionService{
     botlibEmbeds: BotlibEmbeds = new BotlibEmbeds();
     connectionEmbeds: ConnectionEmbeds = new ConnectionEmbeds();
@@ -23,7 +22,7 @@ export class ConnectionService{
     // 1) закрытый профиль игнорируется, данные всё равно импортируется - нужно проверять игру 480 / 289070
     // 2) не поддерживает URI steam://, придётся использовать components: this.connectionButtons.linkButton(steamLobbyURL, isLicense)
     async getLobbyLink(interaction: CommandInteraction, description: string){
-        let userData: any = await this.userSteamService.getOne(interaction.user.id);
+        let userData: IUserSteam | undefined = await this.userSteamService.getOne(interaction.user.id);
 
         if(!userData)
             return this.getConnect(interaction);
@@ -39,9 +38,7 @@ export class ConnectionService{
         let isLicense: boolean = (steamData.gameid == this.connectionConfig.headerLicense);
 
         let steamLobbyURL: string = `steam://joinlobby/${steamData.gameid}/${steamData.lobbysteamid}/${steamData.steamid}`;
-        await interaction.reply({
-            embeds: signEmbed(interaction, this.connectionEmbeds.link(steamLobbyURL, isLicense, description)),
-        })
+        await interaction.reply({embeds: signEmbed(interaction, this.connectionEmbeds.link(steamLobbyURL, isLicense, description)),});
     }
 
     async getConnect(interaction: CommandInteraction){
