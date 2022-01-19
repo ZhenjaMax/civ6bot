@@ -7,7 +7,7 @@ import {UserPunishment, UserPunishmentModel} from "./models/db.UserPunishment";
 import {RatingNote, RatingNoteModel} from "./models/db.RatingNote";
 import {UserTimings, UserTimingsModel} from "./models/db.UserTimings";
 
-function dbInitialize(){
+export async function dbInitialize(){
     let dbConfig: DbConfig = new DbConfig();
     const database = new Sequelize(dbConfig.database, dbConfig.username, dbConfig.password, dbConfig.options);
 
@@ -18,8 +18,6 @@ function dbInitialize(){
     RatingNote.init(RatingNoteModel, {sequelize: database});
     UserTimings.init(UserTimingsModel, {sequelize: database});
 
-    database.sync({alter: true}); // Не использовать force, т.к. это DROP TABLE IF EXISTS
+    await database.sync({alter: true}); // Не использовать force, т.к. это DROP TABLE IF EXISTS
     console.log("Database started");
 }
-
-dbInitialize();

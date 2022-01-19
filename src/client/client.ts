@@ -1,6 +1,7 @@
 import {Client} from "discordx";
 import {Intents, Interaction} from "discord.js";
 import {AdapterClientModeration} from "../bot/adapters/adapter.client.moderation";
+import {dbInitialize} from "../db/db.initialize";
 
 export class ClientSingleton{
     adapterClientModeration: AdapterClientModeration = new AdapterClientModeration();
@@ -31,13 +32,9 @@ export class ClientSingleton{
         this.client.once("ready", async () => {
             await this.client.initApplicationCommands({global: { log: true }});
             await this.client.initApplicationPermissions(true);  // init permissions; enabled log to see changes
-            try{
-                await this.adapterClientModeration.checkOnReady();
-            } catch (readyError) {
-                console.log("Check members error, pass")
-            } finally {
-                console.log("Civilization VI bot started");
-            }
+            await dbInitialize();
+            await this.adapterClientModeration.checkOnReady();
+            console.log("Civilization VI bot started");
         });
         this.client.on("interactionCreate", (interaction: Interaction) => {this.client.executeInteraction(interaction);});
         this.client.on("guildMemberAdd", (member) => {this.adapterClientModeration.checkMember(member)});
