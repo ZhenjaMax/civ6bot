@@ -1,4 +1,4 @@
-import {CommandInteraction, Message, MessageReaction, ReactionCollector, TextChannel, User} from "discord.js";
+import {CommandInteraction, Guild, GuildMember, Message, MessageReaction, ReactionCollector, TextChannel, User, VoiceChannel} from "discord.js";
 import {NewVote, NewVoteObjectBlank, NewVoteObjectCaptains, NewVoteObjectCommon, NewVoteObjectDraft} from "./new.models";
 import {BotlibEmbeds} from "../../botlib/botlib.embeds";
 import {NewConfig} from "./new.config";
@@ -44,7 +44,42 @@ export class NewService{
         return true;
     }
 
+    async movePlayers(interaction: CommandInteraction, type: "FFA" | "Teamers"){
+        let member: GuildMember = interaction.member as GuildMember;
+        let guild: Guild = interaction.guild as Guild;
+        let currentVoiceChannel: VoiceChannel = member.voice.channel as VoiceChannel;
+
+        let baseChannelID: string = (type == "FFA")
+            ? this.newConfig.voiceChannelBaseFFA
+            : this.newConfig.voiceChannelBaseTeamers;
+        if(currentVoiceChannel.id != baseChannelID)
+            return;
+
+        let typedChannelsID = (type == "FFA")
+            ? this.newConfig.voiceChannelsFFA
+            : this.newConfig.voiceChannelsTeamers;
+        let typedChannels: VoiceChannel[] = [];
+
+        let channelIndex: number = 0, channelMembersAmount: number = 999, currentChannelMembersAmount: number;
+        for(let i: number = 0; i < typedChannelsID.length; i++) {
+            typedChannels.push(await guild.channels.fetch(typedChannelsID[i]) as VoiceChannel);
+            currentChannelMembersAmount = Array.from(typedChannels[i].members.values()).length;
+            if(currentChannelMembersAmount == 0){
+                channelIndex = i;
+                break;
+            } else if(currentChannelMembersAmount < channelMembersAmount){
+                channelIndex = i;
+                channelMembersAmount = currentChannelMembersAmount;
+            }
+        }
+        let members: GuildMember[] = Array.from(currentVoiceChannel.members.values());
+        for(let i in members)
+            await members[i].voice.setChannel(typedChannels[channelIndex]);
+    }
+
     async getNew(interaction: CommandInteraction, type: "FFA" | "Teamers") {
+        await this.movePlayers(interaction, type);
+
         let currentNewVote = new NewVote(interaction, type);
         if (!await this.checkNew(currentNewVote))
             return;

@@ -32,9 +32,9 @@ export class ConnectionService{
         steamData = steamData.response.players[0];
 
         if(!steamData.lobbysteamid)
-            return await interaction.reply({embeds: this.botlibEmbeds.error("Вы не создали игровое лобби или ваш профиль Steam \"не в сети\".")});
+            return await interaction.reply({embeds: this.botlibEmbeds.error("Вы не создали игровое лобби или ваш профиль Steam \"не в сети\"."), ephemeral: true});
         if(!(steamData.gameid == this.connectionConfig.headerPirate || steamData.gameid == this.connectionConfig.headerLicense))
-            return await interaction.reply({embeds: this.botlibEmbeds.error("Вы играете в неподходящую игру для генерации ссылки.")});
+            return await interaction.reply({embeds: this.botlibEmbeds.error("Вы играете в неподходящую игру для генерации ссылки."), ephemeral: true});
         let isLicense: boolean = (steamData.gameid == this.connectionConfig.headerLicense);
 
         let steamLobbyURL: string = `steam://joinlobby/${steamData.gameid}/${steamData.lobbysteamid}/${steamData.steamid}`;

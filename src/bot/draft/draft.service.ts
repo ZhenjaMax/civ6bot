@@ -1,4 +1,4 @@
-import {CommandInteraction, Message, MessageEmbed, User} from "discord.js";
+import {CommandInteraction, Message, MessageEmbed, TextChannel, User} from "discord.js";
 import {DraftEmbedObject} from "./draft.models"
 import {BotlibEmbeds, signEmbed} from "../../botlib/botlib.embeds";
 import {DraftEmbeds} from "./draft.embeds";
@@ -106,19 +106,18 @@ export class DraftService{
                     embeds: [this.draftEmbeds.draftBlindPm(draftEmbedObject, i)],
                     components: this.draftButtons.blindPmRows(draftEmbedObject, i)
                 }));
-            await interaction.reply({
+            draftEmbedObject.blindChatMessage = await interaction.reply({
                 embeds: signEmbed(interaction, this.draftEmbeds.draftBlindProcessing(draftEmbedObject)),
-                components: this.draftButtons.blindDelete()
-            });
+                components: this.draftButtons.blindDelete(),
+                fetchReply: true
+            }) as Message;
         } catch (blindError) {
             draftEmbedObject.isProcessing = false;
             this.draftEmbedObjectArray.splice(this.draftEmbedObjectArray.indexOf(draftEmbedObject), 1);
             draftEmbedObject.pmArray.forEach(x => x.delete());
             let user: User = draftEmbedObject.users[draftEmbedObject.pmArray.length];
-            console.log(draftEmbedObject)
-            console.log(draftEmbedObject.pmArray.length)
             let msg: MessageEmbed[] = this.botlibEmbeds.error(`Один из игроков (${user.toString()}) заблокировал бота. Провести драфт невозможно.`);
-            return await interaction.reply( {embeds: msg});
+            return await interaction.reply({embeds: msg});
         }
     }
 
@@ -126,7 +125,6 @@ export class DraftService{
         let lastDEO: DraftEmbedObject | undefined = this.draftEmbedObjectArray.filter((x) => (x.guildID == interaction.guildId))[0];
         if(!await this.checkRedraftDEO(lastDEO, interaction))
             return;
-
         lastDEO.redraftMinAmount = Math.min(lastDEO.users.length, Math.floor(lastDEO.users.length/2)+1+lastDEO.redraftCounter);
         lastDEO.interaction = interaction;
         lastDEO.isProcessing = true;
@@ -137,43 +135,35 @@ export class DraftService{
     }
 
     async runRedraft(draftEmbedObject: DraftEmbedObject){
-        let msgArray: MessageEmbed[] = [this.draftEmbeds.redraftProcessing(draftEmbedObject)];
-        let interaction: CommandInteraction = draftEmbedObject.interaction;
+        let channel: TextChannel = draftEmbedObject.interaction.channel as TextChannel;
         draftEmbedObject.redraftCounter += 1;
         draftEmbedObject.redraftResult = -1;
         this.draftEmbedObjectRoutine.setType(draftEmbedObject, draftEmbedObject.type);
         switch(draftEmbedObject.type){
             case "FFA":
-                msgArray.push(this.draftEmbeds.draftFFA(draftEmbedObject));
-                return await draftEmbedObject.interaction.editReply({embeds: signEmbed(interaction, msgArray), components: []});
+                return await channel.send({embeds: signEmbed(draftEmbedObject.interaction, this.draftEmbeds.draftFFA(draftEmbedObject))});
             case "Teamers":
-                msgArray = msgArray.concat(this.draftEmbeds.draftTeamers(draftEmbedObject));
-                return await draftEmbedObject.interaction.editReply({embeds: signEmbed(interaction, msgArray), components: []});
+                return await channel.send({embeds: signEmbed(draftEmbedObject.interaction, this.draftEmbeds.draftTeamers(draftEmbedObject))});
             case "Blind":
-                msgArray.push(this.draftEmbeds.draftBlindProcessing(draftEmbedObject));
                 draftEmbedObject.isProcessing = true;
                 try{
-                    for(let i: number = 0; i < draftEmbedObject.users.length; i++) {
-                        let msg: Message = await draftEmbedObject.users[i].send({
+                    for(let i: number = 0; i < draftEmbedObject.users.length; i++)
+                        draftEmbedObject.pmArray.push(await draftEmbedObject.users[i].send({
                             embeds: [this.draftEmbeds.draftBlindPm(draftEmbedObject, i)],
                             components: this.draftButtons.blindPmRows(draftEmbedObject, i)
-                        });
-                        draftEmbedObject.pmArray.push(msg);
-                    }
-                    return await draftEmbedObject.interaction.editReply({
-                        embeds: signEmbed(interaction, msgArray),
-                        components: this.draftButtons.blindDelete()
+                        }));
+                    draftEmbedObject.blindChatMessage = await channel.send({
+                        embeds: signEmbed(draftEmbedObject.interaction, this.draftEmbeds.draftBlindProcessing(draftEmbedObject)),
+                        components: this.draftButtons.blindDelete(),
                     });
                 } catch (blindError) {
                     let user: User = draftEmbedObject.users[draftEmbedObject.pmArray.length];
-                    let msg: MessageEmbed[];
-                    if(user)
-                        msg = this.botlibEmbeds.error(`Один из игроков (${user.toString()}) заблокировал бота. Провести драфт невозможно.`);
-                    else
-                        msg = this.botlibEmbeds.error(`Неизвестная ошибка при исполнении драфта взакрытую.`);
+                    let msg: MessageEmbed[] = (user)
+                        ? this.botlibEmbeds.error(`Один из игроков (${user.toString()}) заблокировал бота. Провести драфт невозможно.`)
+                        : this.botlibEmbeds.error(`Неизвестная ошибка при исполнении драфта взакрытую.`);
                     draftEmbedObject.pmArray.forEach(x => x.delete());
                     this.draftEmbedObjectArray.splice(this.draftEmbedObjectArray.indexOf(draftEmbedObject), 1);
-                    return await interaction.reply( {embeds: msg});
+                    return await draftEmbedObject.interaction.reply( {embeds: msg});
                 }
         }
     }
@@ -224,7 +214,7 @@ class DraftEmbedObjectRoutine{
                     }
                     let correctDraft: boolean = true;
                     let swapIndex: number = -1;
-                    do{
+                    do {
                         correctDraft = true;
                         for(let i = 0; i < draftEmbedObject.amount; i++){
                             swapIndex = this.getDraftSwapIndex(draftEmbedObject.draft[i]);
@@ -233,13 +223,11 @@ class DraftEmbedObjectRoutine{
                                 let randomSwapIndex: number = Math.floor(Math.random()*draftEmbedObject.draft[0].length);
                                 let temp: string = draftEmbedObject.draft[i][swapIndex];
                                 draftEmbedObject.draft[i][swapIndex] = draftEmbedObject.draft[(i+1) % draftEmbedObject.amount][randomSwapIndex];
-                                draftEmbedObject.draft[(i+1) % draftEmbedObject.amount][randomSwapIndex] = temp;
+                                draftEmbedObject.draft[(i+1)%draftEmbedObject.amount][randomSwapIndex] = temp;
                             }
                         }
                     } while(!correctDraft);
                 }
-                break;
-            default:
                 break;
         }
         draftEmbedObject.draft.forEach(draft => draft.sort());

@@ -1,4 +1,4 @@
-import {ButtonInteraction, CommandInteraction, GuildMember, MessageEmbed, TextChannel} from "discord.js";
+import {ButtonInteraction, CommandInteraction, GuildMember, MessageEmbed, Role, TextChannel} from "discord.js";
 import {RatingObject} from "./rating.models";
 import {BotlibEmbeds} from "../../botlib/botlib.embeds";
 import {IRatingNote, RatingNoteService} from "../../db/models/db.RatingNote";
@@ -45,6 +45,18 @@ export class RatingService{
     private constructor() {}
     public static get Instance(){
         return this._instance || (this._instance = new this());
+    }
+
+    async updateRole(member: GuildMember, rating: number){
+        let roleIndex: number = 0;
+        for (let value of this.ratingConfig.roleRanksValue)
+            if (value <= rating)
+                roleIndex++;
+        for (let i: number = 0; i < this.ratingConfig.roleRanksID.length; i++)
+            if ((i != roleIndex) && (member.roles.cache.has(this.ratingConfig.roleRanksID[i])))
+                await member.roles.remove(member.roles.cache.get(this.ratingConfig.roleRanksID[i]) as Role);
+        if (!member.roles.cache.has(this.ratingConfig.roleRanksID[roleIndex]))
+            await member.roles.add(await member.guild.roles.fetch(this.ratingConfig.roleRanksID[roleIndex]) as Role);
     }
 
     protected applyObjects(ratingObject: RatingObject, userRatingsConcat: IUserRating[], userProfilesConcat: IUserProfile[], usersTimingsConcat: IUserTimings[], add: boolean = true){
@@ -159,6 +171,9 @@ export class RatingService{
         await this.sendToSpecifyChannel(ratingObject.interaction, msg);
         if(!auto)
             await ratingObject.interaction.reply({embeds: msg});
+
+        for(let i in userRatingsConcat)
+            await this.updateRole(await ratingObject.interaction.guild?.members.fetch(userRatingsConcat[i].userID) as GuildMember, userRatingsConcat[i].rating);
     }
 
     async ratingAdd(interaction: CommandInteraction, member: GuildMember, ratingType: string, ratingAmount: number){
@@ -187,6 +202,9 @@ export class RatingService{
         let msg: MessageEmbed[] = [this.ratingEmbeds.ratingSingle(member.user, interaction.user, ratingType, ratingAmount, userRatingTotal)];
         await interaction.reply({embeds: msg});
         await this.sendToSpecifyChannel(interaction, msg);
+
+        if(ratingType == "Common")
+            await this.updateRole(member, userRating.rating);
     }
 
     async ratingSet(interaction: CommandInteraction, member: GuildMember, ratingType: string, ratingAmount: number){
@@ -206,12 +224,15 @@ export class RatingService{
                 break;
         }
         if(ratingAmount == 0)
-            return await interaction.reply({embeds: this.botlibEmbeds.error("Разница в рейтинге не должна быть равна 0.")});
+            return await interaction.reply({embeds: this.botlibEmbeds.error("Разница в рейтинге не должна быть равна 0."), ephemeral: true});
         await this.userRatingService.update(userRating);
 
         let msg: MessageEmbed[] = [this.ratingEmbeds.ratingSingle(member.user, interaction.user, ratingType, ratingAmount, userRatingTotal)];
         await interaction.reply({embeds: msg});
         await this.sendToSpecifyChannel(interaction, msg);
+
+        if(ratingType == "Common")
+            await this.updateRole(member, userRating.rating);
     }
 
     async ratingCancel(interaction: CommandInteraction, gameNumber: number){
@@ -244,6 +265,9 @@ export class RatingService{
         let msg: MessageEmbed[] = [this.ratingEmbeds.ratingCancel(interaction.user, ratingObject, userRatings)];
         await this.sendToSpecifyChannel(ratingObject.interaction, msg);
         await ratingObject.interaction.reply({embeds: msg});
+
+        for(let i in userRatings)
+            await this.updateRole(await ratingObject.interaction.guild?.members.fetch(userRatings[i].userID) as GuildMember, userRatings[i].rating);
     }
 
     async ratingRevert(interaction: CommandInteraction, gameNumber: number){
@@ -278,5 +302,8 @@ export class RatingService{
         let msg: MessageEmbed[] = [this.ratingEmbeds.ratingRevert(interaction.user, ratingObject, userRatings)];
         await this.sendToSpecifyChannel(ratingObject.interaction, msg);
         await ratingObject.interaction.reply({embeds: msg});
+
+        for(let i in userRatings)
+            await this.updateRole(await ratingObject.interaction.guild?.members.fetch(userRatings[i].userID) as GuildMember, userRatings[i].rating);
     }
 }

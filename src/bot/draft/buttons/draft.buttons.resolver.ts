@@ -58,7 +58,7 @@ export abstract class DraftButtonsResolver{
                 draftEmbedObject.redraftResult = 1;
                 draftEmbedObject.isProcessing = false;
                 await msg.edit({ embeds: [this.draftEmbeds.redraftProcessing(draftEmbedObject)], components: [] });
-                setTimeout(async () => {await this.draftService.runRedraft(draftEmbedObject);}, 3000);
+                setTimeout(async () => {await this.draftService.runRedraft(draftEmbedObject);}, 2000);
             } else
                 await msg.edit({ embeds: [this.draftEmbeds.redraftProcessing(draftEmbedObject)] });
             return await interaction.deferUpdate();
@@ -83,8 +83,8 @@ export abstract class DraftButtonsResolver{
                 await msg.edit({ embeds: [this.draftEmbeds.redraftProcessing(draftEmbedObject)], components: [] });
                 this.draftService.draftEmbedObjectArray.splice(this.draftService.draftEmbedObjectArray.indexOf(draftEmbedObject), 1)
             } else
-                await msg.edit({ embeds: [this.draftEmbeds.redraftProcessing(draftEmbedObject)] });
-            return await interaction.deferUpdate();
+                await msg.edit({embeds: [this.draftEmbeds.redraftProcessing(draftEmbedObject)]});
+            await interaction.deferUpdate();
         } catch (buttonError){
             return;
         }
