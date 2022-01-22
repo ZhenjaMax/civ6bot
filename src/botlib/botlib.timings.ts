@@ -43,8 +43,11 @@ export class BotlibTimings{
     }
 
     getDaysDifference(date: Date): number{
+        let thisDate: Date = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0);
+
         let tempDate: Date = new Date();
         let currentDate: Date = new Date(tempDate.getFullYear(), tempDate.getMonth(), tempDate.getDate(), 0, 0, 0, 0);
-        return Math.floor((currentDate.getTime()-date.getTime())/(this.getTimeMs("d", 1)));
+
+        return Math.floor((currentDate.getTime()-thisDate.getTime())/(this.getTimeMs("d", 1)));
     }
 }
