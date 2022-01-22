@@ -25,7 +25,7 @@ export class CommunityService{
                 msg = this.communityEmbeds.remap();
                 break;
             case "leave":
-                msg = this.communityEmbeds.remap();
+                msg = this.communityEmbeds.leave();
                 break;
             case "veto":
                 msg = this.communityEmbeds.veto();

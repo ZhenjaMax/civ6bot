@@ -2,7 +2,7 @@ import {ButtonInteraction, Collection, CommandInteraction, Guild, GuildMember, M
 import {IUserPunishment, UserPunishmentService} from "../../db/models/db.UserPunishment";
 import {ModerationConfig} from "./moderation.config";
 import {BotlibTimings} from "../../botlib/botlib.timings";
-import {BotlibEmbeds} from "../../botlib/botlib.embeds";
+import {BotlibEmbeds, signEmbed} from "../../botlib/botlib.embeds";
 import {ModerationEmbeds} from "./moderation.embeds";
 import * as schedule from "node-schedule";
 import {Job} from "node-schedule";
@@ -193,7 +193,7 @@ export class ModerationService{
             return await interaction.reply({embeds: this.botlibEmbeds.error("У вас нет прав для выполнения этой команды."), ephemeral: true});
         let userPunishment: IUserPunishment = await this.userPunishmentService.getOne(interaction.guildId, member.id);
         if(!userPunishment.banned)
-            return await interaction.reply({embeds: this.botlibEmbeds.error("Данный пользователь на имеет действующего бана.")});
+            return await interaction.reply({embeds: this.botlibEmbeds.error("Данный пользователь на имеет действующего бана."), ephemeral: true});
         userPunishment.banned = null;
         await this.userPunishmentService.update(userPunishment);
 
@@ -215,7 +215,7 @@ export class ModerationService{
     private async unmuteVoice(interaction: CommandInteraction, member: GuildMember, reason: string){
         let userPunishment: IUserPunishment = await this.userPunishmentService.getOne(interaction.guildId, member.id);
         if(!userPunishment.mutedVoice)
-            return await interaction.reply({embeds: this.botlibEmbeds.error("Данный пользователь на имеет действующей блокировки в голосовых каналах.")});
+            return await interaction.reply({embeds: this.botlibEmbeds.error("Данный пользователь на имеет действующей блокировки в голосовых каналах."), ephemeral: true});
         userPunishment.mutedVoice = null;
         await this.userPunishmentService.update(userPunishment);
 
@@ -229,7 +229,7 @@ export class ModerationService{
     private async unmuteChat(interaction: CommandInteraction, member: GuildMember, reason: string){
         let userPunishment: IUserPunishment = await this.userPunishmentService.getOne(interaction.guildId, member.id);
         if(!userPunishment.mutedChat)
-            return await interaction.reply({embeds: this.botlibEmbeds.error("Данный пользователь на имеет действующей блокировки в текстовых каналах.")});
+            return await interaction.reply({embeds: this.botlibEmbeds.error("Данный пользователь на имеет действующей блокировки в текстовых каналах."), ephemeral: true});
         userPunishment.mutedChat = null;
         await this.userPunishmentService.update(userPunishment);
 
@@ -372,5 +372,33 @@ export class ModerationService{
         let msg: MessageEmbed[] = [this.moderationEmbeds.banTierSet(member.user, interaction.user, banTierBefore, banTier, reason)];
         await interaction.reply({embeds: msg});
         await this.sendToSpecifyChannel(interaction, msg);
+    }
+
+    async weakSet(interaction: CommandInteraction, member: GuildMember, weakAmount: number, reason: string){
+        if(!this.getUserPermissionStatus(interaction, 2))
+            return await interaction.reply({embeds: this.botlibEmbeds.error("У вас нет прав для выполнения этой команды."), ephemeral: true});
+        if((weakAmount < 0) || (weakAmount > this.moderationConfig.maxWeakPoints))
+            return await interaction.reply({embeds: this.botlibEmbeds.error(`Значение очков слабости от 0 до ${this.moderationConfig.maxWeakPoints}.`), ephemeral: true});
+        let userPunishment: IUserPunishment = await this.userPunishmentService.getOne(interaction.guildId, member.id);
+        let weakPointsBefore: number = userPunishment.weakPoints;
+        userPunishment.weakPoints = weakAmount;
+
+        await this.userPunishmentService.update(userPunishment);
+        await interaction.reply({embeds: signEmbed(interaction, this.moderationEmbeds.weak(member.user, weakPointsBefore, userPunishment.weakPoints, reason))});
+    }
+
+    async weakAdd(interaction: CommandInteraction, member: GuildMember, weakAmount: number, reason: string){
+        if(!this.getUserPermissionStatus(interaction, 2))
+            return await interaction.reply({embeds: this.botlibEmbeds.error("У вас нет прав для выполнения этой команды."), ephemeral: true});
+        if(weakAmount == 0)
+            return await interaction.reply({embeds: this.botlibEmbeds.error("Введите целое ненулевое значение."), ephemeral: true});
+        let userPunishment: IUserPunishment = await this.userPunishmentService.getOne(interaction.guildId, member.id);
+        let weakPointsBefore: number = userPunishment.weakPoints;
+        userPunishment.weakPoints += weakAmount;
+        if((userPunishment.weakPoints < 0) || (userPunishment.weakPoints > this.moderationConfig.maxWeakPoints))
+            return await interaction.reply({embeds: this.botlibEmbeds.error(`Значение очков слабости от 0 до ${this.moderationConfig.maxWeakPoints}.`), ephemeral: true});
+
+        await this.userPunishmentService.update(userPunishment);
+        await interaction.reply({embeds: signEmbed(interaction, this.moderationEmbeds.weak(member.user, weakPointsBefore, userPunishment.weakPoints, reason))});
     }
 }

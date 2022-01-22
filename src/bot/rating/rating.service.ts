@@ -207,27 +207,30 @@ export class RatingService{
             await this.updateRole(member, userRating.rating);
     }
 
-    async ratingSet(interaction: CommandInteraction, member: GuildMember, ratingType: string, ratingAmount: number){
+    async ratingSet(interaction: CommandInteraction, member: GuildMember, ratingType: string, ratingChange: number){
         if(!this.moderationService.getUserPermissionStatus(interaction, 4))
             return await interaction.reply({embeds: this.botlibEmbeds.error("У вас нет прав для выполнения этой команды."), ephemeral: true});
         let userRating: IUserRating = await this.userRatingService.getOne(member.guild.id, member.id);
-        let userRatingTotal: number = ratingAmount;
+        let userRatingTotal: number = ratingChange;
         switch(ratingType){
             case "FFA":
-                ratingAmount = userRatingTotal - userRating.ratingFFA;
+                ratingChange = userRatingTotal-userRating.ratingFFA;
+                userRating.ratingFFA += ratingChange;
                 break;
             case "Teamers":
-                ratingAmount = userRatingTotal - userRating.ratingTeamers;
+                ratingChange = userRatingTotal-userRating.ratingTeamers;
+                userRating.ratingTeamers += ratingChange;
                 break;
             default:
-                ratingAmount = userRatingTotal - userRating.rating;
+                ratingChange = userRatingTotal-userRating.rating;
+                userRating.rating += ratingChange;
                 break;
         }
-        if(ratingAmount == 0)
+        if(ratingChange == 0)
             return await interaction.reply({embeds: this.botlibEmbeds.error("Разница в рейтинге не должна быть равна 0."), ephemeral: true});
         await this.userRatingService.update(userRating);
 
-        let msg: MessageEmbed[] = [this.ratingEmbeds.ratingSingle(member.user, interaction.user, ratingType, ratingAmount, userRatingTotal)];
+        let msg: MessageEmbed[] = [this.ratingEmbeds.ratingSingle(member.user, interaction.user, ratingType, ratingChange, userRatingTotal)];
         await interaction.reply({embeds: msg});
         await this.sendToSpecifyChannel(interaction, msg);
 

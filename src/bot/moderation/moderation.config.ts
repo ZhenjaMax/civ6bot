@@ -12,4 +12,6 @@ export class ModerationConfig{
     banTierDays: number[] = [0, 1, 2, 3, 5, 7, 14, 28, 365]; // Прогрессивная шкала банов
 
     clearMax: number = 10;
+
+    maxWeakPoints: number = 5;
 }

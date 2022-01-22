@@ -22,25 +22,25 @@ export class DraftService{
 
     private async checkDEO(DEO: DraftEmbedObject): Promise<boolean>{
         if(DEO.users.length == 0) {
-            await DEO.interaction.reply({embeds: this.botlibEmbeds.error("Для выполнения этой команды вы должны находиться в голосовом канале.")});
+            await DEO.interaction.reply({embeds: this.botlibEmbeds.error("Для выполнения этой команды вы должны находиться в голосовом канале."), ephemeral: true});
             return false;
         }
         switch(DEO.type) {
             case "FFA":
                 if(DEO.amount < this.draftConfig.ffaCivilizationMin || DEO.amount > this.draftConfig.ffaCivilizationMax) {
-                    await DEO.interaction.reply({embeds: this.botlibEmbeds.error(`Поддерживается от ${this.draftConfig.ffaCivilizationMin} до ${this.draftConfig.ffaCivilizationMax} лидеров для одного игрока.`)});
+                    await DEO.interaction.reply({embeds: this.botlibEmbeds.error(`Поддерживается от ${this.draftConfig.ffaCivilizationMin} до ${this.draftConfig.ffaCivilizationMax} лидеров для одного игрока.`), ephemeral: true});
                     return false;
                 }
                 break;
             case "Teamers":
                 if(DEO.amount < this.draftConfig.teamersCommandsMin || DEO.amount > this.draftConfig.teamersCommandsMax) {
-                    await DEO.interaction.reply({embeds: this.botlibEmbeds.error(`Поддерживается от ${this.draftConfig.teamersCommandsMin} до ${this.draftConfig.teamersCommandsMax} команд.`)});
+                    await DEO.interaction.reply({embeds: this.botlibEmbeds.error(`Поддерживается от ${this.draftConfig.teamersCommandsMin} до ${this.draftConfig.teamersCommandsMax} команд.`), ephemeral: true});
                     return false
                 }
                 break;
             case "Blind":
                 if(DEO.amount < this.draftConfig.blindCivilizationMin || DEO.amount > this.draftConfig.blindCivilizationMax){
-                    await DEO.interaction.reply( {embeds: this.botlibEmbeds.error(`Поддерживается от ${this.draftConfig.blindCivilizationMin} до ${this.draftConfig.blindCivilizationMax} лидеров для одного игрока.`)});
+                    await DEO.interaction.reply( {embeds: this.botlibEmbeds.error(`Поддерживается от ${this.draftConfig.blindCivilizationMin} до ${this.draftConfig.blindCivilizationMax} лидеров для одного игрока.`), ephemeral: true});
                     return false;
                 }
                 break;

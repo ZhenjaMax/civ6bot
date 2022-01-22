@@ -43,7 +43,7 @@ export abstract class RatingCommands{
         @SlashChoice("Teamers", "Teamers")
         @SlashChoice("общий", "Common")
         @SlashOption("тип-рейтинга", { description: "общий рейтинг влияет на роль игрока", required: true }) ratingType: string,
-        @SlashOption("количество-рейтинга", {description: "новое значение рейтинга", required: true}) ratingAmount: number,
+        @SlashOption("количество", {description: "новое значение рейтинга", required: true}) ratingAmount: number,
         interaction: CommandInteraction
     ) { await this.ratingService.ratingSet(interaction, member, ratingType, ratingAmount) }
 
@@ -54,19 +54,19 @@ export abstract class RatingCommands{
         @SlashChoice("Teamers", "Teamers")
         @SlashChoice("общий", "Common")
         @SlashOption("тип-рейтинга", { description: "общий рейтинг влияет на роль игрока", required: true }) ratingType: string,
-        @SlashOption("количество-рейтинга", {description: "количество рейтинга", required: true}) ratingAmount: number,
+        @SlashOption("количество", {description: "количество рейтинга", required: true}) ratingAmount: number,
         interaction: CommandInteraction
     ) { await this.ratingService.ratingAdd(interaction, member, ratingType, ratingAmount) }
 
     @Slash("cancel", { description: "Отменить результат игры" })
     async ratingCancel(
-        @SlashOption("номер-игры", {description: "порядковый номер игры", required: true}) game: number,
+        @SlashOption("номер-игры", {description: "порядковый номер отчета", required: true}) game: number,
         interaction: CommandInteraction
     ) { await this.ratingService.ratingCancel(interaction, game) }
 
     @Slash("revert", { description: "Восстановить отмененную игру" })
     async ratingRevert(
-        @SlashOption("номер-игры", {description: "порядковый номер игры", required: true}) game: number,
+        @SlashOption("номер-игры", {description: "порядковый номер отчета", required: true}) game: number,
         interaction: CommandInteraction
     ) { await this.ratingService.ratingRevert(interaction, game) }
 }

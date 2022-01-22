@@ -40,4 +40,11 @@ export class BotlibEmojis {
         "<:fifteen:840562913492074516>",
         "<:sixteen:840562913449213982>",
     ];
+
+    victoryScience: string = "<:Science_Victory:828460766042652753>";
+    victoryCulture: string = "<:Culture_Victory:828460766742839326>";
+    victoryDomination: string = "<:Domination_Victory:828460766604034089>";
+    victoryReligious: string = "<:Religious_Victory:828460765501063179>";
+    victoryDiplomatic: string = "<:Diplomatic_Victory:828460766439931914>";
+    victoryScore: string = "<:Score_Victory:828460766369546310>";
 }

@@ -31,8 +31,20 @@ export class BotlibTimings{
     // Московское время в форме строки; исходный объект не изменяется
     // Почему-то не работает корректно
     getDateString(date: Date): string{
-        //let timezoneDate: Date = new Date(date.getTime() + this.getTimeMs("h", this.timeDelta))
-        //return `${timezoneDate.getDate()} ${this.months[timezoneDate.getMonth()]} ${timezoneDate.getFullYear()} года, ${((timezoneDate.getHours())%24<10) ? "0" : ""}${timezoneDate.getHours()%24}:${(timezoneDate.getMinutes()<10) ? "0" : ""}${timezoneDate.getMinutes()} МСК`;
-        return `${date.getDate()} ${this.months[date.getMonth()]} ${date.getFullYear()} года, ${((date.getHours())%24<10) ? "0" : ""}${date.getHours()%24}:${(date.getMinutes()<10) ? "0" : ""}${date.getMinutes()} МСК`;
+        let timezoneDate: Date = new Date(date.getTime() + this.getTimeMs("h", this.timeDelta))
+        return `${timezoneDate.getDate()} ${this.months[timezoneDate.getMonth()]} ${timezoneDate.getFullYear()} года, ${((timezoneDate.getHours())%24<10) ? "0" : ""}${timezoneDate.getHours()%24}:${(timezoneDate.getMinutes()<10) ? "0" : ""}${timezoneDate.getMinutes()} МСК`;
+    }
+
+    getTimeToNextDayString(): string{
+        let currentDate: Date = new Date();
+        let nextDate: Date = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate()+1, 0, 0, 0, 0);
+        let deltaMin: number = Math.floor((nextDate.getTime() - currentDate.getTime())/1000/60);
+        return `${Math.floor(deltaMin/60) < 10 ? "0" : ""}${Math.floor(deltaMin/60)}:${deltaMin%60 < 10 ? "0" : ""}${deltaMin%60} ч`;
+    }
+
+    getDaysDifference(date: Date): number{
+        let tempDate: Date = new Date();
+        let currentDate: Date = new Date(tempDate.getFullYear(), tempDate.getMonth(), tempDate.getDate(), 0, 0, 0, 0);
+        return Math.floor((currentDate.getTime()-date.getTime())/(this.getTimeMs("d", 1)));
     }
 }
