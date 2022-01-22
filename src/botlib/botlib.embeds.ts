@@ -1,6 +1,6 @@
-import {CommandInteraction, MessageEmbed} from "discord.js";
+import {ButtonInteraction, CommandInteraction, MessageEmbed} from "discord.js";
 
-export function signEmbed(interaction: CommandInteraction, embed: MessageEmbed | MessageEmbed[]): MessageEmbed[]{
+export function signEmbed(interaction: CommandInteraction | ButtonInteraction, embed: MessageEmbed | MessageEmbed[]): MessageEmbed[]{
     if(!Array.isArray(embed))
         embed = [embed];
     embed[embed.length-1].setFooter(interaction.user.tag, interaction.user.avatarURL() || undefined);

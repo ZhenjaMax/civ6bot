@@ -9,6 +9,7 @@ export const UserProfileModel = {
     money:    { type: DataTypes.INTEGER, defaultValue: 0, allowNull: false },
     likes:	  { type: DataTypes.INTEGER, defaultValue: 0, allowNull: false },
     dislikes: { type: DataTypes.INTEGER, defaultValue: 0, allowNull: false },
+    bonusStreak:{type: DataTypes.INTEGER, defaultValue: 0},
 
     description:      { type: DataTypes.STRING, defaultValue: "", allowNull: false },
     profileAvatarURL: { type: DataTypes.STRING, defaultValue: "", allowNull: false },
@@ -22,6 +23,7 @@ export interface IUserProfile{
     money: number;
     likes: number;
     dislikes: number;
+    bonusStreak: number;
 
     description: string;
     profileAvatarURL: string;

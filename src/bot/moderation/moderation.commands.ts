@@ -1,4 +1,4 @@
-import {Discord, Slash, SlashChoice, SlashOption} from "discordx";
+import {Discord, Slash, SlashChoice, SlashGroup, SlashOption} from "discordx";
 import {ModerationService} from "./moderation.service";
 import {CommandInteraction, GuildMember} from "discord.js";
 
@@ -79,4 +79,26 @@ export abstract class ModerationCommands{
         @SlashOption("количество", {description: "количество сообщений для удаления", required: true, type: "NUMBER"}) clearAmount: number,
         interaction: CommandInteraction
     ) { await this.moderationService.clear(interaction, clearAmount) }
+}
+
+@Discord()
+@SlashGroup("weak", "Начисление очков слабости")
+export abstract class ModerationCommandsWeak {
+    moderationService: ModerationService = ModerationService.Instance;
+
+    @Slash("add", {description: "Очистить сообщения в чате"})
+    async weakAdd(
+        @SlashOption("игрок", {description: "пользователь, который будет размучен", required: true, type: "USER"}) member: GuildMember,
+        @SlashOption("количество", {description: "количество очков слабости",  required: false, type: "NUMBER"}) weakAmount: number = 1,
+        @SlashOption("причина", {description: "описание причины", required: false, type: "STRING"}) reason: string = "",
+        interaction: CommandInteraction
+    ) { await this.moderationService.weakAdd(interaction, member, weakAmount, reason) }
+
+    @Slash("set", {description: "Очистить сообщения в чате"})
+    async weakSet(
+        @SlashOption("игрок", {description: "пользователь, который получит очки слабости", required: true, type: "USER"}) member: GuildMember,
+        @SlashOption("количество", {description: "количество очков слабости",  required: true, type: "NUMBER"}) weakAmount: number,
+        @SlashOption("причина", {description: "описание причины", required: false, type: "STRING"}) reason: string = "",
+        interaction: CommandInteraction
+    ) { await this.moderationService.weakSet(interaction, member, weakAmount, reason) }
 }
