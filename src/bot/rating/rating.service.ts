@@ -63,6 +63,9 @@ export class RatingService{
         let ratingNotesConcat: IRatingNote[] = ratingObject.ratingNotes.concat(ratingObject.ratingNotesSub);
         let multiplier: number = (add) ? 1 : -1;
         let currentDate: Date = new Date();
+        console.log(ratingObject);
+        console.log(ratingNotesConcat);
+        console.log(userRatingsConcat);
 
         for(let i: number = 0; i < userRatingsConcat.length; i++){
             userRatingsConcat[i].rating += ratingNotesConcat[i].rating*multiplier;
@@ -107,11 +110,11 @@ export class RatingService{
             userProfilesConcat[i].money += ratingNotesConcat[i].money*multiplier;
             userProfilesConcat[i].fame += ratingNotesConcat[i].fame*multiplier;
             if(multiplier > 0) {
-                ratingObject.ratingNotes[i].isActive = true;    // Для revert
+                ratingNotesConcat[i].isActive = true;    // Для revert
                 usersTimingsConcat[i].game = currentDate;
             }
             else    // Дата уже есть
-                ratingObject.ratingNotes[i].isActive = false;
+                ratingNotesConcat[i].isActive = false;
         }
     }
 
