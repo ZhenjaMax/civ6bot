@@ -63,9 +63,6 @@ export class RatingService{
         let ratingNotesConcat: IRatingNote[] = ratingObject.ratingNotes.concat(ratingObject.ratingNotesSub);
         let multiplier: number = (add) ? 1 : -1;
         let currentDate: Date = new Date();
-        console.log(ratingObject);
-        console.log(ratingNotesConcat);
-        console.log(userRatingsConcat);
 
         for(let i: number = 0; i < userRatingsConcat.length; i++){
             userRatingsConcat[i].rating += ratingNotesConcat[i].rating*multiplier;

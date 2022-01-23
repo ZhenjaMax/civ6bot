@@ -225,7 +225,7 @@ export class RatingObject{
         }
         for(let i: number = 0; i < this.ratingNotesSub.length; i++){
             this.ratingNotesSub[i].fame = this.ratingNotes.length;
-            this.ratingNotesSub[i].money = this.ratingNotesSub[i].fame + this.ratingNotesSub[i].ratingTyped + this.ratingConfig.baseGold;
+            this.ratingNotesSub[i].money = Math.max(this.ratingNotesSub[i].fame + this.ratingNotesSub[i].ratingTyped + this.ratingConfig.baseGold, 0);
             if(this.victoryType != 0){
                 this.ratingNotesSub[i].money = Math.round(this.ratingConfig.multiplierMoney*this.ratingNotesSub[i].money);
                 this.ratingNotesSub[i].rating = Math.round(this.ratingConfig.multiplierRating*this.ratingNotesSub[i].rating);
