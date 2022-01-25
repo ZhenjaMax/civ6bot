@@ -46,8 +46,11 @@ export class NewConfig{
     votingTime = 150*1000;            //Секунд, учёт дополнительного времени при помощи количества сообщений
     newPlayersMin: number = 4;
 
-    voiceChannelBaseFFA: string = "663144077818331190";
-    voiceChannelBaseTeamers: string = "698542233770786917";
+    voiceChannelBasePirateFFA: string = "663144077818331190";
+    voiceChannelBasePirateTeamers: string = "698542233770786917";
+
+    voiceChannelBaseLicenseFFA: string = "935287472882085918";
+    voiceChannelBaseLicenseTeamers: string = "935287783424155780";
 
     voiceChannelsFFA: string[] = [
         "710084028161851452",

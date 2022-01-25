@@ -49,10 +49,10 @@ export class NewService{
         let guild: Guild = interaction.guild as Guild;
         let currentVoiceChannel: VoiceChannel = member.voice.channel as VoiceChannel;
 
-        let baseChannelID: string = (type == "FFA")
-            ? this.newConfig.voiceChannelBaseFFA
-            : this.newConfig.voiceChannelBaseTeamers;
-        if(currentVoiceChannel.id != baseChannelID)
+        let baseChannelID: string[] = (type == "FFA")
+            ? [this.newConfig.voiceChannelBasePirateFFA, this.newConfig.voiceChannelBaseLicenseFFA]
+            : [this.newConfig.voiceChannelBasePirateTeamers, this.newConfig.voiceChannelBaseLicenseTeamers];
+        if(baseChannelID.indexOf(currentVoiceChannel.id) == -1)
             return;
 
         let typedChannelsID = (type == "FFA")
