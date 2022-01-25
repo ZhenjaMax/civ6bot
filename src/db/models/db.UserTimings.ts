@@ -2,14 +2,16 @@ import {DataTypes, Model} from "sequelize";
 import {BaseService} from "../db.BaseService";
 
 export const UserTimingsModel = {
-    guildID:  { type: DataTypes.STRING, allowNull: false },
-    userID:   { type: DataTypes.STRING, allowNull: false },
+    guildID:{ type: DataTypes.STRING, allowNull: false },
+    userID: { type: DataTypes.STRING, allowNull: false },
 
-    like:       { type: DataTypes.DATE, defaultValue: null },
-    dislike:    { type: DataTypes.DATE, defaultValue: null },
-    bonus:      { type: DataTypes.DATE, defaultValue: null },
+    like:   { type: DataTypes.DATE, defaultValue: null },
+    dislike:{ type: DataTypes.DATE, defaultValue: null },
+    bonus:  { type: DataTypes.DATE, defaultValue: null },
 
-    game:       { type: DataTypes.DATE, defaultValue: null },
+    game:   { type: DataTypes.DATE, defaultValue: null },
+    ban:    { type: DataTypes.DATE, defaultValue: null },
+    proposal:{type: DataTypes.DATE, defaultValue: null },
 };
 
 export interface IUserTimings{
@@ -21,6 +23,8 @@ export interface IUserTimings{
     bonus: Date | null;
 
     game: Date | null;
+    ban: Date | null;
+    proposal: Date | null;
 }
 
 export class UserTimings extends Model {}

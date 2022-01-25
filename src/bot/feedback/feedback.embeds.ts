@@ -20,6 +20,7 @@ export class FeedbackEmbeds{
             .setDescription(`— Все команды бота и их описание перечислены при написании символа \"/\" (слеш)
             — [ссылка на проект GitHub](${this.feedbackConfig.botGitHubURL})
             — для отзывов используйте команду \"/feedback\"
+            — если вы хотите поддержать проект, вы можете задонатить на содержание бота
             — для связи в Discord: **ZhenjaMax#3594**`)
             .setImage(this.feedbackConfig.botImageURL)
     }

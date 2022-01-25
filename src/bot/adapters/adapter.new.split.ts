@@ -7,7 +7,11 @@ export class AdapterNewSplit {
     splitService: SplitService = SplitService.Instance;
 
     async getSplit(newVote: NewVote){
-        let splitObject: SplitObject = new SplitObject(newVote.interaction, newVote.captains.map(x => newVote.users[x]));
+        let splitObject: SplitObject = new SplitObject(
+            newVote.interaction,
+            newVote.captains.map(x => newVote.users[x]),
+            newVote.users.filter(x => newVote.captains.indexOf(newVote.users.indexOf(x)) == -1)
+        );
         let channel: TextChannel = splitObject.interaction.channel as TextChannel;
 
         let currentSplit: SplitObject | undefined = this.splitService.splitObjectArray.filter(x => ((x.isProcessing) && (x.guildID == splitObject.interaction.guildId)))[0];
@@ -29,7 +33,7 @@ export class AdapterNewSplit {
         let collector: ReactionCollector = msg.createReactionCollector( {time: this.splitService.splitConfig.time});
         splitObject.init(msg, collector);
         splitObject.initNew(newVote);
-        try{
+        try {
             collector.on("collect", async (reaction: MessageReaction, user: User) => {await collectorSplit(reaction, user)});
             for(let i in splitObject.emojis)
                 splitObject.reactions.push(await splitObject.message?.react(splitObject.emojis[i]) as MessageReaction);

@@ -4,4 +4,6 @@ export class FeedbackConfig{
 
     proposalChannelID: string = "817346967067426816";
     ownerID: string = "352051709649879053";
+
+    proposalHoursMin: number = 4;
 }

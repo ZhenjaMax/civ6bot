@@ -38,8 +38,8 @@ export class BotlibTimings{
     getTimeToNextDayString(): string{
         let currentDate: Date = new Date();
         let nextDate: Date = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate()+1, 0, 0, 0, 0);
-        let deltaMin: number = Math.floor((nextDate.getTime() - currentDate.getTime())/1000/60);
-        return `${Math.floor(deltaMin/60) < 10 ? "0" : ""}${Math.floor(deltaMin/60)}:${deltaMin%60 < 10 ? "0" : ""}${deltaMin%60} ч`;
+        let deltaMin: number = Math.floor((nextDate.getTime() - currentDate.getTime())/this.getTimeMs("m", 1));
+        return `${Math.floor(deltaMin/60)}:${deltaMin%60 < 10 ? "0" : ""}${deltaMin%60} ч`;
     }
 
     getDaysDifference(date: Date): number{
@@ -48,6 +48,14 @@ export class BotlibTimings{
         let tempDate: Date = new Date();
         let currentDate: Date = new Date(tempDate.getFullYear(), tempDate.getMonth(), tempDate.getDate(), 0, 0, 0, 0);
 
-        return Math.floor((currentDate.getTime()-thisDate.getTime())/(this.getTimeMs("d", 1)));
+        return Math.floor((currentDate.getTime()-thisDate.getTime())/this.getTimeMs("d", 1));
     }
+
+    getHoursDifference(date: Date): number{ return Math.floor((Date.now()-date.getTime())/this.getTimeMs("h", 1)) }
+
+    getTimeToNextTimeString(date: Date): string{
+        let deltaMin: number = Math.floor((date.getTime()-Date.now())/this.getTimeMs("m", 1));
+        return `${Math.floor(deltaMin/60)}:${deltaMin%60 < 10 ? "0" : ""}${deltaMin%60} ч`;
+    }
+
 }

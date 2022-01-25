@@ -130,7 +130,7 @@ export class NewService{
         collector.on("collect", async (reaction: MessageReaction, user: User) => {await collectorNew(reaction, user)});
         for (let user of currentNewVote.users)
             if (user != currentNewVote.interaction.user)
-                await user.send({embeds: this.botlibEmbeds.notify(`Началось голосование для новой игры в режиме ${currentNewVote.type}. На голосование можно перейти по ссылке ниже.
+                await user.send({embeds: this.botlibEmbeds.notify(`⚡ Началось голосование для новой игры в режиме **__${currentNewVote.type}__**. На голосование можно перейти по ссылке ниже.
                 https://discordapp.com/channels/${currentNewVote.guildID}/${currentNewVote.newVoteObjects[0].message?.channel.id}/${currentNewVote.newVoteObjects[0].message?.id}`)});
     }
 

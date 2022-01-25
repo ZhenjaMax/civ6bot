@@ -58,9 +58,9 @@ export class SplitService{
             components: this.splitButtons.splitRow(),
             fetchReply: true
         }) as Message;
-        let collector: ReactionCollector = msg.createReactionCollector( {time: this.splitConfig.time});
+        let collector: ReactionCollector = msg.createReactionCollector({time: this.splitConfig.time});
         currentSplit.init(msg, collector);
-        try{
+        try {
             collector.on("collect", async (reaction: MessageReaction, user: User) => {await collectorSplit(reaction, user)});
             for(let i in currentSplit.emojis)
                 currentSplit.reactions.push(await currentSplit.message?.react(currentSplit.emojis[i]) as MessageReaction);

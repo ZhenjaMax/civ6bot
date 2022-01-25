@@ -116,10 +116,10 @@ export class SocialEmbeds{
     }
 
     stats(user: User, userRating: IUserRating, userTimings: IUserTimings): MessageEmbed{
-        let victories: string = `${this.botlibEmojis.victoryScience}  ${userRating.victoriesScience}  |  ${this.botlibEmojis.victoryCulture}  ${userRating.victoriesCulture}
-        ${this.botlibEmojis.victoryDomination}  ${userRating.victoriesDomination}  |  ${this.botlibEmojis.victoryReligious}  ${userRating.victoriesReligious}
-        ${this.botlibEmojis.victoryDiplomatic}  ${userRating.victoriesDiplomatic}  |  ${this.botlibEmojis.victoryScore}  ${userRating.victoriesScore}`;
-
+        let victories: string = "";
+        victories += `${this.botlibEmojis.victoryScience}  ${userRating.victoriesScience}  |  ${this.botlibEmojis.victoryCulture}  ${userRating.victoriesCulture}\n`;
+        victories += `${this.botlibEmojis.victoryDomination}  ${userRating.victoriesDomination}  |  ${this.botlibEmojis.victoryReligious}  ${userRating.victoriesReligious}\n`;
+        victories += `${this.botlibEmojis.victoryDiplomatic}  ${userRating.victoriesDiplomatic}  |  ${this.botlibEmojis.victoryScore}  ${userRating.victoriesScore}`;
         return new MessageEmbed()
             .setTitle(`🔎 Статистика игрока ${user.tag}`)
             .setColor("#00a4c4")

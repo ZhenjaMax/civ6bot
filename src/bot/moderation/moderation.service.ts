@@ -9,6 +9,7 @@ import {Job} from "node-schedule";
 import {ClientSingleton} from "../../client/client";
 import {Client} from "discordx";
 import {IUserProfile, UserProfileService} from "../../db/models/db.UserProfile";
+import {IUserTimings, UserTimingsService} from "../../db/models/db.UserTimings";
 
 export async function punishmentSchedule(): Promise<void>{
     let currentDate: Date = new Date();
@@ -53,6 +54,7 @@ export async function updateNextScheduleJob(){
 export class ModerationService{
     userPunishmentService: UserPunishmentService = new UserPunishmentService();
     userProfileService: UserProfileService = new UserProfileService();
+    userTimingsService: UserTimingsService = new UserTimingsService();
     botlibEmbeds: BotlibEmbeds = new BotlibEmbeds();
     botlibTimings: BotlibTimings = new BotlibTimings();
     moderationConfig: ModerationConfig = new ModerationConfig();
@@ -108,6 +110,10 @@ export class ModerationService{
         userProfile.fame = Math.max(userProfile.fame - Math.floor(timeMs/1000/3600/2), 0);
         await this.userProfileService.update(userProfile);
 
+        let userTimings: IUserTimings = await this.userTimingsService.getOne(interaction.guildId, member.id);
+        userTimings.ban = new Date();
+        await this.userTimingsService.update(userTimings);
+
         let dateString: string = this.botlibTimings.getDateString(userPunishment.banned);
         let msg: MessageEmbed[] = [this.moderationEmbeds.ban(member.user, interaction.user, dateString, reason)];
         await interaction.reply({embeds: msg});
@@ -131,6 +137,10 @@ export class ModerationService{
         let userProfile: IUserProfile = await this.userProfileService.getOne(interaction.guildId, member.id);
         userProfile.fame = Math.max(userProfile.fame - Math.floor(timeMs/1000/3600/2), 0);
         await this.userProfileService.update(userProfile);
+
+        let userTimings: IUserTimings = await this.userTimingsService.getOne(interaction.guildId, member.id);
+        userTimings.ban = new Date();
+        await this.userTimingsService.update(userTimings);
 
         let dateString: string = this.botlibTimings.getDateString(userPunishment.banned);
         let msg: MessageEmbed[] = [this.moderationEmbeds.ban(member.user, interaction.user, dateString, reason, userPunishment.banTier)];

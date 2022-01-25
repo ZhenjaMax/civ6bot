@@ -25,7 +25,7 @@ export class SplitObject{
 
     newVote: NewVote | undefined;
 
-    constructor(interaction: CommandInteraction, captains: User[]) {
+    constructor(interaction: CommandInteraction, captains: User[], usersFromNew: User[] = []) {
         this.interaction = interaction;
         this.guildID = interaction.guildId;
         this.captains = captains;
@@ -34,22 +34,26 @@ export class SplitObject{
         for(let i: number = 0; i < this.captains.length; i++)
             this.commands.push([`👑 ${this.captains[i].toString()}`]);
 
-        let member = interaction.member as GuildMember;
-        let channel = member.voice.channel as GuildChannel;
-        if(channel == null)
-            return;
-        this.users = Array.from(channel.members.values()).map((member): User => {return member.user});
-        for(let i in this.captains)
-            if(this.users.indexOf(this.captains[i]) == -1){
-                this.captains = [];
+        if(usersFromNew.length == 0){
+            let member = interaction.member as GuildMember;
+            let channel = member.voice.channel as GuildChannel;
+            if(channel == null)
                 return;
+            this.users = Array.from(channel.members.values()).map((member): User => {return member.user});
+            for (let i in this.captains)
+                if (this.users.indexOf(this.captains[i]) == -1) {
+                    this.captains = [];
+                    return;
+                }
+            for (let i = 0; i < this.users.length; i++) {
+                if (this.users[i].bot || (this.captains.indexOf(this.users[i]) != -1)) {
+                    this.users.splice(i, 1);
+                    i--;
+                }
             }
-        for(let i = 0; i < this.users.length; i++){
-            if(this.users[i].bot || (this.captains.indexOf(this.users[i]) != -1)){
-                this.users.splice(i, 1);
-                i--;
-            }
-        }
+        } else
+            this.users = usersFromNew;
+
         this.stepTotal = this.users.length-1;
         let botlibEmojis: BotlibEmojis = new BotlibEmojis();
         let splitConfig: SplitConfig = new SplitConfig();
@@ -74,6 +78,7 @@ export class SplitObject{
     }
 
     loadOptions(){
+        this.options = [];
         for(let i in this.users)
             this.options.push(`${this.emojis[i]} ${this.users[i].toString()}`);
     }
