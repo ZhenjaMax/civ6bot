@@ -1,6 +1,6 @@
 {
   "name": "civ6bot",
-  "version": "1.9.2",
+  "version": "1.10.0",
   "description": "civ6bot for discord server",
   "main": "build/index.js",
   "scripts": {

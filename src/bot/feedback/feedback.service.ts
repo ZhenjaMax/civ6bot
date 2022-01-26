@@ -26,7 +26,7 @@ export class FeedbackService{
         let userTimings: IUserTimings = await this.userTimingsService.getOne(member.guild.id, member.id);
         if(userTimings.proposal)
             if(this.botlibTimings.getHoursDifference(userTimings.proposal) < this.feedbackConfig.proposalHoursMin)
-                return await interaction.reply({embeds: this.botlibEmbeds.error(`Вы отправили предложение совсем недавно!\nКоманда будет доступна через ${this.botlibTimings.getTimeToNextTimeString(new Date(userTimings.proposal.getTime() + this.botlibTimings.getTimeMs("h", this.feedbackConfig.proposalHoursMin)))}.`)});
+                return await interaction.reply({embeds: this.botlibEmbeds.error(`Вы отправили предложение совсем недавно!\nКоманда будет доступна через ${this.botlibTimings.getTimeToNextTimeString(new Date(userTimings.proposal.getTime() + this.botlibTimings.getTimeMs("h", this.feedbackConfig.proposalHoursMin)))}.`), ephemeral: true});
         userTimings.proposal = new Date();
         await this.userTimingsService.update(userTimings);
 
