@@ -42,7 +42,9 @@ export class BotlibTimings{
         return `${Math.floor(deltaMin/60)}:${deltaMin%60 < 10 ? "0" : ""}${deltaMin%60} ч`;
     }
 
-    getDaysDifference(date: Date): number{
+    getDaysDifference(date: Date|null): number{
+        if(!date)
+            return -1;
         let thisDate: Date = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0);
 
         let tempDate: Date = new Date();
