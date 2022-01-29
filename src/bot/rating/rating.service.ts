@@ -120,34 +120,6 @@ export class RatingService{
         await ratingChannel.send({embeds: msg});
     }
 
-    async rating(interaction: CommandInteraction, gameType: "FFA" | "Teamers", victoryType: string, message: string, commandsAmount: number = 0){
-        let ratingObject: RatingObject = new RatingObject(interaction, gameType, victoryType, message, commandsAmount);
-        let ratingErrorNumber: number = ratingObject.init();
-        if(ratingErrorNumber)
-            return await interaction.reply({embeds: this.botlibEmbeds.error(`Некорректный список участников игры.\n${this.ratingConfig.errors[ratingErrorNumber-1]}.`), ephemeral: true});
-
-        for(let id of ratingObject.usersID.concat(ratingObject.subUsersID)){
-            let member: GuildMember|undefined = await interaction.guild?.members.fetch(id);
-            if(!member)
-                return await interaction.reply({embeds: this.botlibEmbeds.error(`Пользователь <@!${id}> вышел с сервера. Начисление рейтинга невозможно.`)});
-            ratingObject.usernames.push(member.user.tag);
-        }
-
-        if(this.moderationService.getUserPermissionStatus(interaction, 3))
-            return await this.applyRating(ratingObject, false);
-
-        let channel: TextChannel = await interaction.guild?.channels.fetch(this.ratingConfig.ratingReportsChannelID) as TextChannel;
-        ratingObject.message = await channel.send({
-            embeds: [this.ratingEmbeds.ratingAwait(interaction.user, ratingObject)],
-            components: this.ratingButtons.reportRows()
-        });
-        this.ratingReports.push(ratingObject);
-        schedule.scheduleJob(Date.now() + this.botlibTimings.getTimeMs("d", 1), clearReports);
-        await interaction.reply({embeds: this.botlibEmbeds.notify(`Ваш отчет был успешно отправлен в канал ${channel.toString()}. \nСначала участникам игры необходимо проверить его. Если все правильно, то через некоторое время администрация сервера подтвердит ваш отчет.`), ephemeral: true});
-        await ratingObject.message.react(this.botlibEmojis.yes);
-        await ratingObject.message.react(this.botlibEmojis.no);
-    }
-
     async applyRating(ratingObject: RatingObject, auto: boolean){
         let gameID: number = await this.ratingNoteService.getNextID(ratingObject.interaction.guildId);
         let userRatingsConcat: IUserRating[] = [], userProfilesConcat: IUserProfile[] = [], usersTimingsConcat: IUserTimings[] = [];
@@ -170,17 +142,49 @@ export class RatingService{
         let msg: MessageEmbed[] = [this.ratingEmbeds.ratingDefault(ratingObject.interaction.user, ratingObject, userRatingsConcat)];
         await this.sendToSpecifyChannel(ratingObject.interaction, msg);
         if(!auto)
-            await ratingObject.interaction.reply({embeds: msg});
+            await ratingObject.interaction.editReply({embeds: msg});
 
         for(let i in userRatingsConcat)
             await this.updateRole(await ratingObject.interaction.guild?.members.fetch(userRatingsConcat[i].userID) as GuildMember, userRatingsConcat[i].rating);
     }
 
+    async rating(interaction: CommandInteraction, gameType: "FFA" | "Teamers", victoryType: string, message: string, commandsAmount: number = 0){
+        await interaction.deferReply();
+
+        let ratingObject: RatingObject = new RatingObject(interaction, gameType, victoryType, message, commandsAmount);
+        let ratingErrorNumber: number = ratingObject.init();
+        if(ratingErrorNumber)
+            return await interaction.editReply({embeds: this.botlibEmbeds.error(`Некорректный список участников игры.\n${this.ratingConfig.errors[ratingErrorNumber-1]}.`)});
+
+        for(let id of ratingObject.usersID.concat(ratingObject.subUsersID)){
+            let member: GuildMember|undefined = await interaction.guild?.members.fetch(id);
+            if(!member)
+                return await interaction.editReply({embeds: this.botlibEmbeds.error(`Пользователь <@!${id}> вышел с сервера. Начисление рейтинга невозможно.`)});
+            ratingObject.usernames.push(member.user.tag);
+        }
+
+        if(this.moderationService.getUserPermissionStatus(interaction, 3))
+            return await this.applyRating(ratingObject, false);
+
+        let channel: TextChannel = await interaction.guild?.channels.fetch(this.ratingConfig.ratingReportsChannelID) as TextChannel;
+        ratingObject.message = await channel.send({
+            embeds: [this.ratingEmbeds.ratingAwait(interaction.user, ratingObject)],
+            components: this.ratingButtons.reportRows()
+        });
+        this.ratingReports.push(ratingObject);
+        schedule.scheduleJob(Date.now() + this.botlibTimings.getTimeMs("d", 1), clearReports);
+        await interaction.editReply({embeds: this.botlibEmbeds.notify(`Ваш отчет был успешно отправлен в канал ${channel.toString()}. \nСначала участникам игры необходимо проверить его. Если все правильно, то через некоторое время администрация сервера подтвердит ваш отчет.`)});
+        await ratingObject.message.react(this.botlibEmojis.yes);
+        await ratingObject.message.react(this.botlibEmojis.no);
+    }
+
     async ratingAdd(interaction: CommandInteraction, member: GuildMember, ratingType: string, ratingAmount: number){
+        await interaction.deferReply();
+
         if(!this.moderationService.getUserPermissionStatus(interaction, 4))
-            return await interaction.reply({embeds: this.botlibEmbeds.error("У вас нет прав для выполнения этой команды."), ephemeral: true});
+            return await interaction.editReply({embeds: this.botlibEmbeds.error("У вас нет прав для выполнения этой команды.")});
         if(ratingAmount == 0)
-            return await interaction.reply({embeds: this.botlibEmbeds.error("Разница в рейтинге не должна быть равна 0.")});
+            return await interaction.editReply({embeds: this.botlibEmbeds.error("Разница в рейтинге не должна быть равна 0.")});
         let userRating: IUserRating = await this.userRatingService.getOne(member.guild.id, member.id);
         let userRatingTotal: number;
         switch(ratingType){
@@ -200,7 +204,7 @@ export class RatingService{
         await this.userRatingService.update(userRating);
 
         let msg: MessageEmbed[] = [this.ratingEmbeds.ratingSingle(member.user, interaction.user, ratingType, ratingAmount, userRatingTotal)];
-        await interaction.reply({embeds: msg});
+        await interaction.editReply({embeds: msg});
         await this.sendToSpecifyChannel(interaction, msg);
 
         if(ratingType == "Common")
@@ -208,8 +212,10 @@ export class RatingService{
     }
 
     async ratingSet(interaction: CommandInteraction, member: GuildMember, ratingType: string, ratingChange: number){
+        await interaction.deferReply();
+
         if(!this.moderationService.getUserPermissionStatus(interaction, 4))
-            return await interaction.reply({embeds: this.botlibEmbeds.error("У вас нет прав для выполнения этой команды."), ephemeral: true});
+            return await interaction.editReply({embeds: this.botlibEmbeds.error("У вас нет прав для выполнения этой команды.")});
         let userRating: IUserRating = await this.userRatingService.getOne(member.guild.id, member.id);
         let userRatingTotal: number = ratingChange;
         switch(ratingType){
@@ -227,11 +233,11 @@ export class RatingService{
                 break;
         }
         if(ratingChange == 0)
-            return await interaction.reply({embeds: this.botlibEmbeds.error("Разница в рейтинге не должна быть равна 0."), ephemeral: true});
+            return await interaction.editReply({embeds: this.botlibEmbeds.error("Разница в рейтинге не должна быть равна 0.")});
         await this.userRatingService.update(userRating);
 
         let msg: MessageEmbed[] = [this.ratingEmbeds.ratingSingle(member.user, interaction.user, ratingType, ratingChange, userRatingTotal)];
-        await interaction.reply({embeds: msg});
+        await interaction.editReply({embeds: msg});
         await this.sendToSpecifyChannel(interaction, msg);
 
         if(ratingType == "Common")
@@ -239,13 +245,15 @@ export class RatingService{
     }
 
     async ratingCancel(interaction: CommandInteraction, gameNumber: number){
+        await interaction.deferReply();
+
         if(!this.moderationService.getUserPermissionStatus(interaction, 3))
-            return await interaction.reply({embeds: this.botlibEmbeds.error("У вас нет прав для выполнения этой команды."), ephemeral: true});
+            return await interaction.editReply({embeds: this.botlibEmbeds.error("У вас нет прав для выполнения этой команды.")});
         let ratingNotes: IRatingNote[] = await this.ratingNoteService.getAllByID(gameNumber, interaction.guildId);
         if(ratingNotes.length == 0)
-            return await interaction.reply({embeds: this.botlibEmbeds.error("Игры с таким ID не существует."), ephemeral: true});
+            return await interaction.editReply({embeds: this.botlibEmbeds.error("Игры с таким ID не существует.")});
         if(!ratingNotes[0].isActive)
-            return await interaction.reply({embeds: this.botlibEmbeds.error("Игры уже была отменена.\nЕсли вы хотите переначислить эту игру, используйте команду \"/rating revert\"."), ephemeral: true});
+            return await interaction.editReply({embeds: this.botlibEmbeds.error("Игры уже была отменена.\nЕсли вы хотите переначислить эту игру, используйте команду \"/rating revert\".")});
 
         let userRatings: IUserRating[] = [], userProfiles: IUserProfile[] = [];
         for(let i in ratingNotes) {
@@ -267,20 +275,22 @@ export class RatingService{
 
         let msg: MessageEmbed[] = [this.ratingEmbeds.ratingCancel(interaction.user, ratingObject, userRatings)];
         await this.sendToSpecifyChannel(ratingObject.interaction, msg);
-        await ratingObject.interaction.reply({embeds: msg});
+        await ratingObject.interaction.editReply({embeds: msg});
 
         for(let i in userRatings)
             await this.updateRole(await ratingObject.interaction.guild?.members.fetch(userRatings[i].userID) as GuildMember, userRatings[i].rating);
     }
 
     async ratingRevert(interaction: CommandInteraction, gameNumber: number){
+        await interaction.deferReply();
+
         if(!this.moderationService.getUserPermissionStatus(interaction, 3))
-            return await interaction.reply({embeds: this.botlibEmbeds.error("У вас нет прав для выполнения этой команды."), ephemeral: true});
+            return await interaction.editReply({embeds: this.botlibEmbeds.error("У вас нет прав для выполнения этой команды.")});
         let ratingNotes: IRatingNote[] = await this.ratingNoteService.getAllByID(gameNumber, interaction.guildId);
         if(ratingNotes.length == 0)
-            return await interaction.reply({embeds: this.botlibEmbeds.error("Игры с таким ID не существует."), ephemeral: true});
+            return await interaction.editReply({embeds: this.botlibEmbeds.error("Игры с таким ID не существует.")});
         if(ratingNotes[0].isActive)
-            return await interaction.reply({embeds: this.botlibEmbeds.error("Данная игра уже учитывается в списке отчетов.\nЕсли вы хотите отменить эту игру, используйте команду \"/rating cancel\"."), ephemeral: true});
+            return await interaction.editReply({embeds: this.botlibEmbeds.error("Данная игра уже учитывается в списке отчетов.\nЕсли вы хотите отменить эту игру, используйте команду \"/rating cancel\".")});
 
         let userRatings: IUserRating[] = [], userProfiles: IUserProfile[] = [], userTimings: IUserTimings[] = [];
         for(let i in ratingNotes) {
@@ -304,7 +314,7 @@ export class RatingService{
 
         let msg: MessageEmbed[] = [this.ratingEmbeds.ratingRevert(interaction.user, ratingObject, userRatings)];
         await this.sendToSpecifyChannel(ratingObject.interaction, msg);
-        await ratingObject.interaction.reply({embeds: msg});
+        await ratingObject.interaction.editReply({embeds: msg});
 
         for(let i in userRatings)
             await this.updateRole(await ratingObject.interaction.guild?.members.fetch(userRatings[i].userID) as GuildMember, userRatings[i].rating);

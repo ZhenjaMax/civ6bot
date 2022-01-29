@@ -58,7 +58,7 @@ export abstract class DraftButtonsResolver{
                 draftEmbedObject.redraftResult = 1;
                 draftEmbedObject.isProcessing = false;
                 await msg.edit({ embeds: [this.draftEmbeds.redraftProcessing(draftEmbedObject)], components: [] });
-                setTimeout(async () => {await this.draftService.runRedraft(draftEmbedObject);}, 2000);
+                setTimeout(async () => {await this.draftService.runRedraft(draftEmbedObject)}, 2000);
             } else
                 await msg.edit({ embeds: [this.draftEmbeds.redraftProcessing(draftEmbedObject)] });
             return await interaction.deferUpdate();

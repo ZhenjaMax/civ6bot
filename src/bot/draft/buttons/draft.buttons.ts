@@ -41,7 +41,8 @@ export class DraftButtons{
                 .setEmoji(this.botlibEmojis.no)
                 .setLabel("Против")
                 .setStyle("DANGER")
-                .setCustomId("redraftButton-no"))
+                .setCustomId("redraftButton-no")
+        )
         rows.push(new MessageActionRow().addComponents(buttonArray));
         return rows;
     }

@@ -25,17 +25,17 @@ export class NewService{
 
     private async checkNew(newVote: NewVote): Promise<boolean>{
         if(newVote.users.length == 0){
-            await newVote.interaction.reply({embeds: this.botlibEmbeds.error("Для выполнения этой команды вы должны находиться в голосовом канале.")});
+            await newVote.interaction.editReply({embeds: this.botlibEmbeds.error("Для выполнения этой команды вы должны находиться в голосовом канале.")});
             return false;
         }
         if(newVote.users.length < this.newConfig.newPlayersMin){
-            await newVote.interaction.reply({embeds: this.botlibEmbeds.error(`Для выполнения этой команды необходимо минимум ${this.newConfig.newPlayersMin} игрока.`)});
+            await newVote.interaction.editReply({embeds: this.botlibEmbeds.error(`Для выполнения этой команды необходимо минимум ${this.newConfig.newPlayersMin} игрока.`)});
             return false;
         }
         let currentNewVote: NewVote | undefined = this.newVoteArray.filter(x => (x.guildID == newVote.interaction.guildId))[0];
         if(currentNewVote){
             if(currentNewVote.isProcessing){
-                await newVote.interaction.reply({embeds: this.botlibEmbeds.error("В данный момент уже проводится голосование. Пожалуйста, подождите."), ephemeral: true});
+                await newVote.interaction.editReply({embeds: this.botlibEmbeds.error("В данный момент уже проводится голосование. Пожалуйста, подождите.")});
                 return false;
             }
             this.newVoteArray.splice(this.newVoteArray.indexOf(currentNewVote), 1);
@@ -74,10 +74,14 @@ export class NewService{
         }
         let members: GuildMember[] = Array.from(currentVoiceChannel.members.values());
         for(let i in members)
-            await members[i].voice.setChannel(typedChannels[channelIndex]);
+            try{
+                await members[i].voice.setChannel(typedChannels[channelIndex]);
+            } catch (newMovePlayersError) {}
+
     }
 
     async getNew(interaction: CommandInteraction, type: "FFA" | "Teamers") {
+        await interaction.deferReply();
         await this.movePlayers(interaction, type);
 
         let currentNewVote = new NewVote(interaction, type);
@@ -94,10 +98,7 @@ export class NewService{
         currentNewVote.newVoteObjects.push(new NewVoteObjectDraft(this.newConfig.newBan, currentNewVote.users.length));
         currentNewVote.newVoteObjects.push(new NewVoteObjectBlank("")); // "Готов"
 
-        let msg: Message = await interaction.reply({
-            content: currentNewVote.newVoteObjects[0].getContent(),
-            fetchReply: true
-        }) as Message;
+        let msg: Message = await interaction.editReply({content: currentNewVote.newVoteObjects[0].getContent()}) as Message;
         let collector: ReactionCollector = msg.createReactionCollector({time: this.newConfig.votingTime});
         currentNewVote.newVoteObjects[0].init(msg, collector);
         collector.on("collect", async (reaction: MessageReaction, user: User) => {await collectorNew(reaction, user)});
@@ -106,14 +107,10 @@ export class NewService{
 
         let channel: TextChannel = msg.channel as TextChannel;
         for (let i: number = 1; i < currentNewVote.newVoteObjects.length-1; i++) {
-            msg = await channel.send({
-                content: currentNewVote.newVoteObjects[i].getContent()
-            }) as Message;
+            msg = await channel.send({content: currentNewVote.newVoteObjects[i].getContent()}) as Message;
             collector = msg.createReactionCollector({time: this.newConfig.votingTime});
             currentNewVote.newVoteObjects[i].init(msg, collector);
-            collector.on("collect", async (reaction: MessageReaction, user: User) => {
-                await collectorNew(reaction, user);
-            });
+            collector.on("collect", async (reaction: MessageReaction, user: User) => {await collectorNew(reaction, user)});
             if (i == currentNewVote.newVoteObjects.length-2)
                 await currentNewVote.newVoteObjects[i].message?.react(this.newConfig.newBanMessageEmoji);
             else
