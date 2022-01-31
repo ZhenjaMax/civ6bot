@@ -1,6 +1,5 @@
 import {CommandInteraction, GuildMember, Message, MessageEmbed} from "discord.js";
 const fetch = require('node-fetch');
-
 import {MiscellaneousEmbeds } from "./miscellaneous.embeds";
 import {BotlibEmbeds, signEmbed} from "../../botlib/botlib.embeds";
 import {MiscellaneousConfig} from "./miscellaneous.config";

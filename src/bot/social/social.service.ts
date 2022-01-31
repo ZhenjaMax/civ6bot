@@ -7,10 +7,11 @@ import {SocialConfig} from "./social.config";
 import {SocialEmbeds} from "./social.embeds";
 import {SocialButtons} from "./buttons/social.buttons";
 import {IUserRating, UserRatingService} from "../../db/models/db.UserRating";
-import {ModerationService} from "../moderation/moderation.service";
 import {IUserPunishment, UserPunishmentService} from "../../db/models/db.UserPunishment";
 import {IProfileMessagePair} from "./social.models";
 import {RatingConfig} from "../rating/rating.config";
+import {AdapterAnyLeaderboard} from "../adapters/adapter.any.leaderboard";
+import {PermissionsService} from "../permissions/permissions.service";
 
 export class SocialService{
     userTimingsService: UserTimingsService = new UserTimingsService();
@@ -22,8 +23,9 @@ export class SocialService{
     socialButtons: SocialButtons = new SocialButtons();
     botlibEmbeds: BotlibEmbeds = new BotlibEmbeds();
     botlibTimings: BotlibTimings = new BotlibTimings();
-    moderationService: ModerationService = ModerationService.Instance;
+    permissionsService: PermissionsService = PermissionsService.Instance;
     ratingConfig: RatingConfig = new RatingConfig();
+    adapterAnyLeaderboard: AdapterAnyLeaderboard = new AdapterAnyLeaderboard();
 
     profileMessages: IProfileMessagePair[] = [];
 
@@ -36,7 +38,6 @@ export class SocialService{
     async bonus(interaction: CommandInteraction | ButtonInteraction){
         let member: GuildMember = interaction.member as GuildMember;
         let userTimings: IUserTimings = await this.userTimingsService.getOne(member.guild.id, member.id);
-
 
         let deltaDays: number = 1;
         if(userTimings.bonus) {
@@ -70,10 +71,14 @@ export class SocialService{
         await this.userProfileService.update(userProfile);
         if(rating)
             await this.userRatingService.update(userRating);
-        return await interaction.reply({
+        await interaction.reply({
             embeds: signEmbed(interaction, this.socialEmbeds.bonus(userProfile.bonusStreak, isMaxBonusStreak, money, userProfile.money, fame, rating)),
             components: this.socialButtons.bonusRows()
         });
+        await this.adapterAnyLeaderboard.update(interaction, "money");
+        await this.adapterAnyLeaderboard.update(interaction, "fame");
+        if(rating)
+            await this.adapterAnyLeaderboard.update(interaction, "rating");
     }
 
     async like(interaction: CommandInteraction, member: GuildMember){
@@ -92,6 +97,7 @@ export class SocialService{
         await this.userTimingsService.update(authorUserTimings);
         await this.userProfileService.update(userProfile);
         await interaction.reply({embeds: signEmbed(interaction, this.socialEmbeds.like(member.user, userProfile.likes))});
+        await this.adapterAnyLeaderboard.update(interaction, "fame");
     }
 
     async dislike(interaction: CommandInteraction, member: GuildMember){
@@ -115,6 +121,7 @@ export class SocialService{
         await this.userTimingsService.update(authorUserTimings);
         await this.userProfileService.updateFromArray([userProfile, authorUserProfile]);
         await interaction.reply({embeds: signEmbed(interaction, this.socialEmbeds.like(member.user, userProfile.dislikes, false))});
+        await this.adapterAnyLeaderboard.update(interaction, "fame");
     }
 
     async moneyPay(interaction: CommandInteraction, member: GuildMember, moneyAmount: number){
@@ -131,11 +138,12 @@ export class SocialService{
         authorUserProfile.money -= moneyAmount;
         userProfile.money += moneyAmount;
         await this.userProfileService.updateFromArray([userProfile, authorUserProfile]);
-        await interaction.reply({embeds: signEmbed(interaction, this.socialEmbeds.moneyPay(authorMember.user, authorUserProfile.money, member.user, userProfile.money, moneyAmount))})
+        await interaction.reply({embeds: signEmbed(interaction, this.socialEmbeds.moneyPay(authorMember.user, authorUserProfile.money, member.user, userProfile.money, moneyAmount))});
+        await this.adapterAnyLeaderboard.update(interaction, "money");
     }
 
     async moneySet(interaction: CommandInteraction, member: GuildMember, moneyAmount: number){
-        if(!this.moderationService.getUserPermissionStatus(interaction, 4))
+        if(!this.permissionsService.getUserPermissionStatus(interaction, 4))
             return await interaction.reply({embeds: this.botlibEmbeds.error("У вас нет прав для выполнения этой команды."), ephemeral: true});
         if(moneyAmount <= 0)
             await interaction.reply({embeds: this.botlibEmbeds.error("Введите целое число больше 0."), ephemeral: true});
@@ -145,10 +153,11 @@ export class SocialService{
         userProfile.money = moneyAmount;
         await this.userProfileService.update(userProfile);
         await interaction.reply({embeds: signEmbed(interaction, this.socialEmbeds.moneySet(member.user, userProfile.money, moneyDelta))});
+        await this.adapterAnyLeaderboard.update(interaction, "money");
     }
 
     async moneyAdd(interaction: CommandInteraction, member: GuildMember, moneyDelta: number){
-        if(!this.moderationService.getUserPermissionStatus(interaction, 4))
+        if(!this.permissionsService.getUserPermissionStatus(interaction, 4))
             return await interaction.reply({embeds: this.botlibEmbeds.error("У вас нет прав для выполнения этой команды."), ephemeral: true});
         let userProfile: IUserProfile = await this.userProfileService.getOne(member.guild.id, member.id);
 
@@ -158,6 +167,7 @@ export class SocialService{
 
         await this.userProfileService.update(userProfile);
         await interaction.reply({embeds: signEmbed(interaction, this.socialEmbeds.moneySet(member.user, userProfile.money, moneyDelta))});
+        await this.adapterAnyLeaderboard.update(interaction, "money");
     }
 
     async profile(interaction: CommandInteraction, member: GuildMember){
@@ -202,7 +212,7 @@ export class SocialService{
     }
 
     async fameSet(interaction: CommandInteraction, member: GuildMember, fameAmount: number){
-        if(!this.moderationService.getUserPermissionStatus(interaction, 4))
+        if(!this.permissionsService.getUserPermissionStatus(interaction, 4))
             return await interaction.reply({embeds: this.botlibEmbeds.error("У вас нет прав для выполнения этой команды."), ephemeral: true});
         if(fameAmount <= 0)
             await interaction.reply({embeds: this.botlibEmbeds.error("Введите целое число больше 0."), ephemeral: true});
@@ -212,10 +222,11 @@ export class SocialService{
         userProfile.fame = fameAmount;
         await this.userProfileService.update(userProfile);
         await interaction.reply({embeds: signEmbed(interaction, this.socialEmbeds.fameSet(member.user, userProfile.fame, fameDelta))});
+        await this.adapterAnyLeaderboard.update(interaction, "fame");
     }
 
     async fameAdd(interaction: CommandInteraction, member: GuildMember, fameDelta: number){
-        if(!this.moderationService.getUserPermissionStatus(interaction, 4))
+        if(!this.permissionsService.getUserPermissionStatus(interaction, 4))
             return await interaction.reply({embeds: this.botlibEmbeds.error("У вас нет прав для выполнения этой команды."), ephemeral: true});
         let userProfile: IUserProfile = await this.userProfileService.getOne(member.guild.id, member.id);
 
@@ -225,5 +236,6 @@ export class SocialService{
 
         await this.userProfileService.update(userProfile);
         await interaction.reply({embeds: signEmbed(interaction, this.socialEmbeds.fameSet(member.user, userProfile.fame, fameDelta))});
+        await this.adapterAnyLeaderboard.update(interaction, "fame");
     }
 }

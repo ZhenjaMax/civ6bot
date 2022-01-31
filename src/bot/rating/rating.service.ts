@@ -7,11 +7,12 @@ import {IUserProfile, UserProfileService} from "../../db/models/db.UserProfile";
 import {IUserTimings, UserTimingsService} from "../../db/models/db.UserTimings";
 import {RatingConfig} from "./rating.config";
 import {RatingEmbeds} from "./rating.embeds";
-import {ModerationService} from "../moderation/moderation.service";
 import {BotlibEmojis} from "../../botlib/botlib.emojis";
 import {RatingButtons} from "./buttons/rating.buttons";
 import * as schedule from "node-schedule";
 import {BotlibTimings} from "../../botlib/botlib.timings";
+import {AdapterAnyLeaderboard} from "../adapters/adapter.any.leaderboard";
+import {PermissionsService} from "../permissions/permissions.service";
 
 export async function clearReports(): Promise<void>{
     let ratingService: RatingService = RatingService.Instance;
@@ -37,7 +38,8 @@ export class RatingService{
     userTimingsService: UserTimingsService = new UserTimingsService();
     ratingEmbeds: RatingEmbeds = new RatingEmbeds();
     ratingButtons: RatingButtons = new RatingButtons();
-    moderationService: ModerationService = ModerationService.Instance;      // убрать потом???
+    permissionsService: PermissionsService = PermissionsService.Instance;
+    adapterAnyLeaderboard: AdapterAnyLeaderboard = new AdapterAnyLeaderboard();
 
     ratingReports: RatingObject[] = [];
 
@@ -81,7 +83,7 @@ export class RatingService{
                 if(ratingObject.winners.indexOf(i) != -1)
                     userRatingsConcat[i].firstPlaceFFA += multiplier
             }
-            if(ratingNotesConcat[i].victoryType > 0){
+            if(ratingNotesConcat[i].victoryType > 0)
                 switch(ratingNotesConcat[i].victoryType){
                     case 1:
                         userRatingsConcat[i].victoriesScience += multiplier;
@@ -102,7 +104,6 @@ export class RatingService{
                         userRatingsConcat[i].victoriesScore += multiplier;
                         break;
                 }
-            }
             userRatingsConcat[i].games += multiplier;
             userProfilesConcat[i].money += ratingNotesConcat[i].money*multiplier;
             userProfilesConcat[i].fame += ratingNotesConcat[i].fame*multiplier;
@@ -120,7 +121,8 @@ export class RatingService{
         await ratingChannel.send({embeds: msg});
     }
 
-    async applyRating(ratingObject: RatingObject, auto: boolean){
+    // Возвращаемое значение необходимо для rating.buttons.resolver.ts
+    async applyRating(ratingObject: RatingObject, auto: boolean): Promise<MessageEmbed[]>{
         let gameID: number = await this.ratingNoteService.getNextID(ratingObject.interaction.guildId);
         let userRatingsConcat: IUserRating[] = [], userProfilesConcat: IUserProfile[] = [], usersTimingsConcat: IUserTimings[] = [];
 
@@ -146,6 +148,10 @@ export class RatingService{
 
         for(let i in userRatingsConcat)
             await this.updateRole(await ratingObject.interaction.guild?.members.fetch(userRatingsConcat[i].userID) as GuildMember, userRatingsConcat[i].rating);
+
+        await this.adapterAnyLeaderboard.update(ratingObject.interaction, "rating");
+        await this.adapterAnyLeaderboard.update(ratingObject.interaction,  ratingObject.gameType ? "ratingTeamers" : "ratingFFA");
+        return msg;
     }
 
     async rating(interaction: CommandInteraction, gameType: "FFA" | "Teamers", victoryType: string, message: string, commandsAmount: number = 0){
@@ -163,7 +169,7 @@ export class RatingService{
             ratingObject.usernames.push(member.user.tag);
         }
 
-        if(this.moderationService.getUserPermissionStatus(interaction, 3))
+        if(this.permissionsService.getUserPermissionStatus(interaction, 3))
             return await this.applyRating(ratingObject, false);
 
         let channel: TextChannel = await interaction.guild?.channels.fetch(this.ratingConfig.ratingReportsChannelID) as TextChannel;
@@ -181,7 +187,7 @@ export class RatingService{
     async ratingAdd(interaction: CommandInteraction, member: GuildMember, ratingType: string, ratingAmount: number){
         await interaction.deferReply();
 
-        if(!this.moderationService.getUserPermissionStatus(interaction, 4))
+        if(!this.permissionsService.getUserPermissionStatus(interaction, 4))
             return await interaction.editReply({embeds: this.botlibEmbeds.error("У вас нет прав для выполнения этой команды.")});
         if(ratingAmount == 0)
             return await interaction.editReply({embeds: this.botlibEmbeds.error("Разница в рейтинге не должна быть равна 0.")});
@@ -209,12 +215,19 @@ export class RatingService{
 
         if(ratingType == "Common")
             await this.updateRole(member, userRating.rating);
+
+        await this.adapterAnyLeaderboard.update(interaction,  (ratingType == "Common")
+            ? "rating"
+            : (ratingType == "FFA")
+                ? "ratingFFA"
+                : "ratingTeamers"
+        );
     }
 
     async ratingSet(interaction: CommandInteraction, member: GuildMember, ratingType: string, ratingChange: number){
         await interaction.deferReply();
 
-        if(!this.moderationService.getUserPermissionStatus(interaction, 4))
+        if(!this.permissionsService.getUserPermissionStatus(interaction, 4))
             return await interaction.editReply({embeds: this.botlibEmbeds.error("У вас нет прав для выполнения этой команды.")});
         let userRating: IUserRating = await this.userRatingService.getOne(member.guild.id, member.id);
         let userRatingTotal: number = ratingChange;
@@ -242,12 +255,19 @@ export class RatingService{
 
         if(ratingType == "Common")
             await this.updateRole(member, userRating.rating);
+
+        await this.adapterAnyLeaderboard.update(interaction,  (ratingType == "Common")
+            ? "rating"
+            : (ratingType == "FFA")
+                ? "ratingFFA"
+                : "ratingTeamers"
+        );
     }
 
     async ratingCancel(interaction: CommandInteraction, gameNumber: number){
         await interaction.deferReply();
 
-        if(!this.moderationService.getUserPermissionStatus(interaction, 3))
+        if(!this.permissionsService.getUserPermissionStatus(interaction, 3))
             return await interaction.editReply({embeds: this.botlibEmbeds.error("У вас нет прав для выполнения этой команды.")});
         let ratingNotes: IRatingNote[] = await this.ratingNoteService.getAllByID(gameNumber, interaction.guildId);
         if(ratingNotes.length == 0)
@@ -279,12 +299,15 @@ export class RatingService{
 
         for(let i in userRatings)
             await this.updateRole(await ratingObject.interaction.guild?.members.fetch(userRatings[i].userID) as GuildMember, userRatings[i].rating);
+
+        await this.adapterAnyLeaderboard.update(interaction, "rating");
+        await this.adapterAnyLeaderboard.update(interaction,  ratingNotes[0].gameType ? "ratingTeamers" : "ratingFFA");
     }
 
     async ratingRevert(interaction: CommandInteraction, gameNumber: number){
         await interaction.deferReply();
 
-        if(!this.moderationService.getUserPermissionStatus(interaction, 3))
+        if(!this.permissionsService.getUserPermissionStatus(interaction, 3))
             return await interaction.editReply({embeds: this.botlibEmbeds.error("У вас нет прав для выполнения этой команды.")});
         let ratingNotes: IRatingNote[] = await this.ratingNoteService.getAllByID(gameNumber, interaction.guildId);
         if(ratingNotes.length == 0)
@@ -318,5 +341,8 @@ export class RatingService{
 
         for(let i in userRatings)
             await this.updateRole(await ratingObject.interaction.guild?.members.fetch(userRatings[i].userID) as GuildMember, userRatings[i].rating);
+
+        await this.adapterAnyLeaderboard.update(interaction, "rating");
+        await this.adapterAnyLeaderboard.update(interaction,  ratingNotes[0].gameType ? "ratingTeamers" : "ratingFFA");
     }
 }
