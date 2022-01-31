@@ -1,4 +1,4 @@
-import {ButtonInteraction, Collection, CommandInteraction, Guild, GuildMember, MessageEmbed, Role, TextChannel} from "discord.js";
+import {CommandInteraction, Guild, GuildMember, MessageEmbed, Role, TextChannel} from "discord.js";
 import {IUserPunishment, UserPunishmentService} from "../../db/models/db.UserPunishment";
 import {ModerationConfig} from "./moderation.config";
 import {BotlibTimings} from "../../botlib/botlib.timings";
@@ -10,6 +10,8 @@ import {ClientSingleton} from "../../client/client";
 import {Client} from "discordx";
 import {IUserProfile, UserProfileService} from "../../db/models/db.UserProfile";
 import {IUserTimings, UserTimingsService} from "../../db/models/db.UserTimings";
+import {AdapterAnyLeaderboard} from "../adapters/adapter.any.leaderboard";
+import {PermissionsService} from "../permissions/permissions.service";
 
 export async function punishmentSchedule(): Promise<void>{
     let currentDate: Date = new Date();
@@ -59,6 +61,9 @@ export class ModerationService{
     botlibTimings: BotlibTimings = new BotlibTimings();
     moderationConfig: ModerationConfig = new ModerationConfig();
     moderationEmbeds: ModerationEmbeds = new ModerationEmbeds();
+    adapterAnyLeaderboard: AdapterAnyLeaderboard = new AdapterAnyLeaderboard();
+    permissionsService: PermissionsService = PermissionsService.Instance;
+
     nextScheduleJob: Job | undefined;
 
     private static _instance: ModerationService;
@@ -67,34 +72,13 @@ export class ModerationService{
         return this._instance || (this._instance = new this());
     }
 
-    //0..5 - уровень доступа: наказан, игрок, стажёр, модератор, администратор, владелец
-    //Проверка на доступ: level - необходимый уровень, должен быть меньше или
-    //равен уровню доступа пользователя
-    getUserPermissionStatus(interaction: CommandInteraction|ButtonInteraction, needLevel: number): boolean{
-        let member: GuildMember = interaction.member as GuildMember;
-        let roles: Collection<string, Role> = member.roles.cache;
-        let currentLevel: number = 1;
-
-        if(member.guild.ownerId == member.id)
-            currentLevel = 5;
-        else if(roles.has(this.moderationConfig.roleAdministratorID))
-            currentLevel = 4;
-        else if(roles.has(this.moderationConfig.roleModeratorID))
-            currentLevel = 3;
-        else if(roles.has(this.moderationConfig.roleSupportID))
-            currentLevel = 2;
-        else if(roles.hasAny(this.moderationConfig.roleBanID, this.moderationConfig.roleMuteChatID, this.moderationConfig.roleMuteVoiceID))
-            currentLevel = 0;
-        return (currentLevel >= needLevel);
-    }
-
     async sendToSpecifyChannel(interaction: CommandInteraction, msg: MessageEmbed[]){
         let punishmentChannel: TextChannel = await interaction.guild?.channels.fetch(this.moderationConfig.punishmentChannelID) as TextChannel;
         await punishmentChannel.send({embeds: msg});
     }
 
     async ban(interaction: CommandInteraction, member: GuildMember, timeType: string, timeAmount: number, reason: string){
-        if(!this.getUserPermissionStatus(interaction, 3))
+        if(!this.permissionsService.getUserPermissionStatus(interaction, 3))
             return await interaction.reply({embeds: this.botlibEmbeds.error("У вас нет прав для выполнения этой команды."), ephemeral: true});
         let userPunishment: IUserPunishment = await this.userPunishmentService.getOne(interaction.guildId, member.id);
         if(userPunishment.banned)
@@ -118,10 +102,12 @@ export class ModerationService{
         let msg: MessageEmbed[] = [this.moderationEmbeds.ban(member.user, interaction.user, dateString, reason)];
         await interaction.reply({embeds: msg});
         await this.sendToSpecifyChannel(interaction, msg);
+
+        await this.adapterAnyLeaderboard.update(interaction, "fame");
     }
 
     async banTier(interaction: CommandInteraction, member: GuildMember, reason: string){
-        if(!this.getUserPermissionStatus(interaction, 3))
+        if(!this.permissionsService.getUserPermissionStatus(interaction, 3))
             return await interaction.reply({embeds: this.botlibEmbeds.error("У вас нет прав для выполнения этой команды."), ephemeral: true});
         let userPunishment: IUserPunishment = await this.userPunishmentService.getOne(interaction.guildId, member.id);
         if(userPunishment.banned)
@@ -146,14 +132,18 @@ export class ModerationService{
         let msg: MessageEmbed[] = [this.moderationEmbeds.ban(member.user, interaction.user, dateString, reason, userPunishment.banTier)];
         await interaction.reply({embeds: msg});
         await this.sendToSpecifyChannel(interaction, msg);
+
+        await this.adapterAnyLeaderboard.update(interaction, "fame");
     }
 
     async mute(interaction: CommandInteraction, member: GuildMember, muteType: string, timeType: string, timeAmount: number, reason: string){
-        if(!this.getUserPermissionStatus(interaction, 3))
+        if(!this.permissionsService.getUserPermissionStatus(interaction, 3))
             return await interaction.reply({embeds: this.botlibEmbeds.error("У вас нет прав для выполнения этой команды."), ephemeral: true});
         if(muteType == "Voice")
-            return await this.muteVoice(interaction, member, timeType, timeAmount, reason);
-        return await this.muteChat(interaction, member, timeType, timeAmount, reason);
+            await this.muteVoice(interaction, member, timeType, timeAmount, reason);
+        else
+            await this.muteChat(interaction, member, timeType, timeAmount, reason);
+        await this.adapterAnyLeaderboard.update(interaction, "fame");
     }
 
     private async muteVoice(interaction: CommandInteraction, member: GuildMember, timeType: string, timeAmount: number, reason: string){
@@ -199,7 +189,7 @@ export class ModerationService{
     }
 
     async unban(interaction: CommandInteraction, member: GuildMember, reason: string){
-        if(!this.getUserPermissionStatus(interaction, 3))
+        if(!this.permissionsService.getUserPermissionStatus(interaction, 3))
             return await interaction.reply({embeds: this.botlibEmbeds.error("У вас нет прав для выполнения этой команды."), ephemeral: true});
         let userPunishment: IUserPunishment = await this.userPunishmentService.getOne(interaction.guildId, member.id);
         if(!userPunishment.banned)
@@ -215,7 +205,7 @@ export class ModerationService{
     }
 
     async unmute(interaction: CommandInteraction, member: GuildMember, muteType: string, reason: string){
-        if(!this.getUserPermissionStatus(interaction, 3))
+        if(!this.permissionsService.getUserPermissionStatus(interaction, 3))
             return await interaction.reply({embeds: this.botlibEmbeds.error("У вас нет прав для выполнения этой команды."), ephemeral: true});
         if(muteType == "Voice")
             return await this.unmuteVoice(interaction, member, reason);
@@ -308,7 +298,7 @@ export class ModerationService{
     }
 
     async pardon(interaction: CommandInteraction, member: GuildMember, reason: string){
-        if(!this.getUserPermissionStatus(interaction, 3))
+        if(!this.permissionsService.getUserPermissionStatus(interaction, 3))
             return await interaction.reply({embeds: this.botlibEmbeds.error("У вас нет прав для выполнения этой команды."), ephemeral: true});
         let userPunishment: IUserPunishment = await this.userPunishmentService.getOne(interaction.guildId, member.id);
         if(!(userPunishment.banned || userPunishment.mutedChat || userPunishment.mutedVoice))
@@ -328,7 +318,7 @@ export class ModerationService{
     }
 
     async clear(interaction: CommandInteraction, clearAmount: number){
-        if(!this.getUserPermissionStatus(interaction, 3))
+        if(!this.permissionsService.getUserPermissionStatus(interaction, 3))
             return await interaction.reply({embeds: this.botlibEmbeds.error("У вас нет прав для выполнения этой команды."), ephemeral: true});
         if(clearAmount > this.moderationConfig.clearMax)
             return await interaction.reply({embeds: this.botlibEmbeds.error("Не более 10 сообщений."), ephemeral: true});
@@ -368,7 +358,7 @@ export class ModerationService{
     }
 
     async banTierSet(interaction: CommandInteraction, member: GuildMember, banTier: number, reason: string){
-        if(!this.getUserPermissionStatus(interaction, 4))
+        if(!this.permissionsService.getUserPermissionStatus(interaction, 4))
             return await interaction.reply({embeds: this.botlibEmbeds.error("У вас нет прав для выполнения этой команды."), ephemeral: true});
         if((banTier < 0) || (banTier >= this.moderationConfig.banTierDays.length))
             return await interaction.reply({embeds: this.botlibEmbeds.error(`Уровень бана от 0 до ${this.moderationConfig.banTierDays.length-1} включительно.`), ephemeral: true});
@@ -385,7 +375,7 @@ export class ModerationService{
     }
 
     async weakSet(interaction: CommandInteraction, member: GuildMember, weakAmount: number, reason: string){
-        if(!this.getUserPermissionStatus(interaction, 2))
+        if(!this.permissionsService.getUserPermissionStatus(interaction, 2))
             return await interaction.reply({embeds: this.botlibEmbeds.error("У вас нет прав для выполнения этой команды."), ephemeral: true});
         if((weakAmount < 0) || (weakAmount > this.moderationConfig.maxWeakPoints))
             return await interaction.reply({embeds: this.botlibEmbeds.error(`Значение очков слабости от 0 до ${this.moderationConfig.maxWeakPoints}.`), ephemeral: true});
@@ -398,7 +388,7 @@ export class ModerationService{
     }
 
     async weakAdd(interaction: CommandInteraction, member: GuildMember, weakAmount: number, reason: string){
-        if(!this.getUserPermissionStatus(interaction, 2))
+        if(!this.permissionsService.getUserPermissionStatus(interaction, 2))
             return await interaction.reply({embeds: this.botlibEmbeds.error("У вас нет прав для выполнения этой команды."), ephemeral: true});
         if(weakAmount == 0)
             return await interaction.reply({embeds: this.botlibEmbeds.error("Введите целое ненулевое значение."), ephemeral: true});

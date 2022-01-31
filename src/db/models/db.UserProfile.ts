@@ -59,4 +59,12 @@ export class UserProfileService extends BaseService {
             return this.create(guildID, userID);
         return this.normalize(currentUserProfile) as IUserProfile;
     }
+
+    async getBestPlayers(guildID: string, type: string, limitAmount: number): Promise<IUserProfile[]>{
+        return this.normalize(await UserProfile.findAll({
+            where: {guildID: guildID},
+            order: [[type, "DESC"]],
+            limit: limitAmount
+        }));
+    }
 }

@@ -1,5 +1,4 @@
 import {CommandInteraction, GuildMember, Message, User} from "discord.js";
-import {ModerationService} from "../moderation/moderation.service";
 import {BallotEmbeds} from "./ballot.embeds";
 import {IUserTimings, UserTimingsService} from "../../db/models/db.UserTimings";
 import {IUserRating, UserRatingService} from "../../db/models/db.UserRating";
@@ -8,11 +7,12 @@ import {BotlibEmbeds} from "../../botlib/botlib.embeds";
 import {BotlibEmojis} from "../../botlib/botlib.emojis";
 import {BotlibTimings} from "../../botlib/botlib.timings";
 import {BallotConfig} from "./ballot.config";
+import {PermissionsService} from "../permissions/permissions.service";
 
 export class BallotService{
     ballotEmbeds: BallotEmbeds = new BallotEmbeds();
     ballotConfig: BallotConfig = new BallotConfig();
-    moderationService: ModerationService = ModerationService.Instance;
+    permissionsService: PermissionsService = PermissionsService.Instance;
     botlibEmbeds: BotlibEmbeds = new BotlibEmbeds();
     botlibEmojis: BotlibEmojis = new BotlibEmojis();
     botlibTimings: BotlibTimings = new BotlibTimings();
@@ -44,8 +44,8 @@ export class BallotService{
     }
 
     async create(interaction: CommandInteraction, member: GuildMember, isDefault: boolean, content: string) {
-        await interaction.deferReply({ephemeral: true, fetchReply: true});
-        if(!this.moderationService.getUserPermissionStatus(interaction, 4))
+        await interaction.deferReply({ephemeral: true});
+        if(!this.permissionsService.getUserPermissionStatus(interaction, 4))
             return await interaction.editReply({embeds: this.botlibEmbeds.error("У вас нет прав для выполнения этой команды.")});
         let userRating: IUserRating = await this.userRatingService.getOne(member.guild.id, member.id);
         let userTimings: IUserTimings = await this.userTimingsService.getOne(member.guild.id, member.id);
@@ -57,8 +57,8 @@ export class BallotService{
     }
 
     async resolve(interaction: CommandInteraction) {
-        await interaction.deferReply();
-        if(!this.moderationService.getUserPermissionStatus(interaction, 4))
+        await interaction.deferReply({ephemeral: true});
+        if(!this.permissionsService.getUserPermissionStatus(interaction, 4))
             return await interaction.editReply({embeds: this.botlibEmbeds.error("У вас нет прав для выполнения этой команды.")});
         if(!interaction.channel)
             return await interaction.editReply({embeds: this.botlibEmbeds.error("Произошла ошибка во время поиска бюллетеней.")});

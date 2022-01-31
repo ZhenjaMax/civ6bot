@@ -6,6 +6,7 @@ import {UserRating, UserRatingModel} from "./models/db.UserRating";
 import {UserPunishment, UserPunishmentModel} from "./models/db.UserPunishment";
 import {RatingNote, RatingNoteModel} from "./models/db.RatingNote";
 import {UserTimings, UserTimingsModel} from "./models/db.UserTimings";
+import {GuildConfig, GuildConfigModel} from "./models/db.GuildConfig";
 
 export async function dbInitialize(){
     let dbConfig: DbConfig = new DbConfig();
@@ -17,6 +18,7 @@ export async function dbInitialize(){
     UserPunishment.init(UserPunishmentModel, {sequelize: database});
     RatingNote.init(RatingNoteModel, {sequelize: database});
     UserTimings.init(UserTimingsModel, {sequelize: database});
+    GuildConfig.init(GuildConfigModel, {sequelize: database});
 
     await database.sync({alter: true}); // Не использовать force, т.к. это DROP TABLE IF EXISTS
     console.log("Database started");

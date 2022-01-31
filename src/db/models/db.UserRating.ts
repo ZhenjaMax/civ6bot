@@ -80,7 +80,21 @@ export class UserRatingService extends BaseService{
         return this.normalize(await UserRating.create(userRating)) as IUserRating;
     }
 
-    async getAllPlayed(): Promise<IUserRating[]>{
-        return this.normalize(await UserRating.findAll({where: {games: {[Op.not]: 0}}})) as IUserRating[];
+    async getAllPlayed(guildID: string): Promise<IUserRating[]>{
+        return this.normalize(await UserRating.findAll({where: {
+            guildID: guildID,
+            games: {[Op.not]: 0}
+        }})) as IUserRating[];
+    }
+
+    async getBestPlayers(guildID: string, ratingType: string, limitAmount: number): Promise<IUserRating[]>{
+        return this.normalize(await UserRating.findAll({
+            where: {
+                guildID: guildID,
+                games: {[Op.not]: 0}
+            },
+            order: [[ratingType, "DESC"]],
+            limit: limitAmount
+        }));
     }
 }
