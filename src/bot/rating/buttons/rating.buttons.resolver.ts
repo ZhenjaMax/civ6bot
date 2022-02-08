@@ -36,10 +36,15 @@ export abstract class RatingButtonsResolver{
         }
         if(!this.permissionsService.getUserPermissionStatus(interaction, 2))
             return await interaction.reply({embeds: this.botlibEmbeds.error("У вас нет прав для подтверждения отчета о рейтинге."), ephemeral: true});
+
+        await interaction.deferReply({ephemeral: true});
         this.ratingService.ratingReports.splice(this.ratingService.ratingReports.indexOf(ratingObject), 1);
         ratingObject.interaction = interaction;
-        await msg.edit({embeds: await this.ratingService.applyRating(ratingObject, true), components: []});
-        await interaction.reply({embeds: this.botlibEmbeds.notify("🔨 Отчет о рейтинге был успешно подтвержден."), ephemeral: true});
-        setTimeout( async () => await msg.delete(), 5000);
+        await msg.edit({
+            embeds: await this.ratingService.applyRating(ratingObject, true),
+            components: []
+        });
+        await msg.reactions.removeAll();
+        await interaction.editReply({embeds: this.botlibEmbeds.notify("🔨 Отчет о рейтинге был успешно подтвержден.")});
     }
 }
