@@ -52,7 +52,7 @@ app.get('/', async (request, response) => {
             return response.send(`status=updated\n user_id=${userSteam.id},\n steam_id=${userSteam.steamID}`);
 
         await userSteamService.create(userSteam.id, userSteam.steamID);
-        return response.send(`status=success\n user_id=${userSteam.id},\n steam_id=${userSteam.steamID}`);
+        return response.send(`status=success\n user_id=${userSteam.id},\n steam_id=${userSteam.steamID}\n\nВы подключили Steam. Возвращайтесь в канал и используйте команду \"/link\" снова!`);
     } catch (e) {
         return response.send("error: no discord-steam connection");
     }

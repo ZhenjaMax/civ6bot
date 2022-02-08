@@ -22,4 +22,17 @@ export class RatingButtons{
         rows.push(new MessageActionRow().addComponents(buttonArray));
         return rows;
     }
+
+    trashRows(){
+        let rows: MessageActionRow[] = [];
+        let buttonArray: MessageButton[] = [];
+        buttonArray.push(
+            new MessageButton()
+                .setEmoji("🗑️")
+                .setStyle("SECONDARY")
+                .setCustomId("rating-trash")
+        );
+        rows.push(new MessageActionRow().addComponents(buttonArray));
+        return rows;
+    }
 }

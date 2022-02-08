@@ -1,4 +1,5 @@
 import {CommandInteraction, GuildChannel, GuildMember, Message, User} from "discord.js";
+import {IGuildConfig} from "../../db/models/db.GuildConfig";
 
 export class DraftEmbedObject {
     type: "FFA" | "Teamers" | "Blind" | undefined;
@@ -6,6 +7,7 @@ export class DraftEmbedObject {
     guildID: string;
 
     interaction: CommandInteraction;
+    guildConfig: IGuildConfig;
     blindChatMessage: Message | undefined;
     amount: number = 0;
     rawBans: string[] = [];
@@ -26,8 +28,9 @@ export class DraftEmbedObject {
     redraftStatus: number[] = [];   // -1, 0, 1
     redraftResult: number = -1;     // -1, 0, 1
 
-    constructor(interaction: CommandInteraction, amount: number, strBans: string){
+    constructor(interaction: CommandInteraction, guildConfig: IGuildConfig, amount: number, strBans: string){
         this.interaction = interaction;
+        this.guildConfig = guildConfig;
         this.guildID = interaction.guildId;
         this.amount = amount;
         this.rawBans = strBans

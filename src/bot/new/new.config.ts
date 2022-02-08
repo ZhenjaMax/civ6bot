@@ -48,10 +48,8 @@ export class NewConfig{
 
     voiceChannelBasePirateFFA: string = "663144077818331190";
     voiceChannelBasePirateTeamers: string = "698542233770786917";
-
     voiceChannelBaseLicenseFFA: string = "935287472882085918";
     voiceChannelBaseLicenseTeamers: string = "935287783424155780";
-
     voiceChannelsFFA: string[] = [
         "710084028161851452",
         "831677778784550952",
@@ -59,7 +57,6 @@ export class NewConfig{
         "711937543356022898",
         "711937526784589896"
     ];
-
     voiceChannelsTeamers: string[] = [
         "711937891974250507",
         "711937939524943884",

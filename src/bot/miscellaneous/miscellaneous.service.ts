@@ -23,7 +23,7 @@ export class MiscellaneousService {
             catData = await catData.json();
             let catURL: string = (Math.random() < this.miscellaneousConfig.catBambrChance) ? this.miscellaneousConfig.catBambrURL : catData.file;
             return await interaction.reply({embeds: signEmbed(interaction, this.miscellaneousEmbeds.catImage(catURL))});
-        } catch (catError) {
+        } catch {
             return await interaction.reply({embeds: this.botlibEmbeds.error("Сервер не предоставил изображение.")});
         }
     }
@@ -34,7 +34,7 @@ export class MiscellaneousService {
             dogData = await dogData.json();
             let dogURL: string = dogData.message;
             await interaction.reply({embeds: signEmbed(interaction, this.miscellaneousEmbeds.dogImage(dogURL))});
-        } catch (dogError) {
+        } catch {
             return await interaction.reply({embeds: this.botlibEmbeds.error("Сервер не предоставил изображение.")});
         }
     }

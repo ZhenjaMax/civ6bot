@@ -2,9 +2,11 @@ import {IRatingNote} from "../../db/models/db.RatingNote";
 import {IUserRating} from "../../db/models/db.UserRating";
 import {RatingConfig} from "./rating.config";
 import {ButtonInteraction, CommandInteraction, Message} from "discord.js";
+import {IGuildConfig} from "../../db/models/db.GuildConfig";
 
 export class RatingObject{
     ratingConfig: RatingConfig = new RatingConfig();
+    guildConfig: IGuildConfig;
     message: Message | undefined;
     interaction: CommandInteraction | ButtonInteraction;
     messageWords: string[] = [];
@@ -27,7 +29,8 @@ export class RatingObject{
     usernames: string[] = [];
     date: Date = new Date();
 
-    constructor(interaction: CommandInteraction, gameType: string, victoryType: string, message: string, commandsAmount: number) {
+    constructor(interaction: CommandInteraction, gameType: string, victoryType: string, message: string, commandsAmount: number, guildConfig: IGuildConfig) {
+        this.guildConfig = guildConfig;
         this.interaction = interaction;
         this.gameType = this.ratingConfig.gameTypes.indexOf(gameType);
         this.victoryType = this.ratingConfig.victoryTypeList.indexOf(victoryType)+1;
@@ -171,10 +174,10 @@ export class RatingObject{
         for(let i: number = 0; i < this.ratingNotes.length; i++) {
             for (let j: number = Math.ceil((i+1)/this.usersPerCommand)*this.usersPerCommand; j < this.ratingNotes.length; j++) {
                 isTie = this.getTieFlag(i, j);
-                rating = this.ratingConfig.ratingEloPair(userRatings[i].rating, userRatings[j].rating, isTie);
+                rating = this.ratingConfig.ratingEloPair(userRatings[i].rating, userRatings[j].rating, this.guildConfig.ratingD, this.guildConfig.ratingK, isTie);
                 ratingTyped = (this.gameType == 1)
-                    ? this.ratingConfig.ratingEloPair(userRatings[i].ratingTeamers, userRatings[j].ratingTeamers, isTie)
-                    : this.ratingConfig.ratingEloPair(userRatings[i].ratingFFA, userRatings[j].ratingFFA, isTie);
+                    ? this.ratingConfig.ratingEloPair(userRatings[i].ratingTeamers, userRatings[j].ratingTeamers, this.guildConfig.ratingD, this.guildConfig.ratingK, isTie)
+                    : this.ratingConfig.ratingEloPair(userRatings[i].ratingFFA, userRatings[j].ratingFFA, this.guildConfig.ratingD, this.guildConfig.ratingK, isTie);
                 this.ratingNotes[i].rating += rating;
                 this.ratingNotes[j].rating -= rating;
                 this.ratingNotes[i].ratingTyped += ratingTyped;
@@ -188,10 +191,10 @@ export class RatingObject{
                     this.ratingNotesSub[currentSubIndex].rating = this.ratingNotes[i].rating;
                     this.ratingNotesSub[currentSubIndex].ratingTyped = this.ratingNotes[i].ratingTyped;
                 } else {    // Если замена ливнула, то побеждаешь её и весь отрицательный рейтинг на неё
-                    rating = this.ratingConfig.ratingEloPair(userRatings[i].rating, userRatingsSub[currentSubIndex].rating, false);
+                    rating = this.ratingConfig.ratingEloPair(userRatings[i].rating, userRatingsSub[currentSubIndex].rating, this.guildConfig.ratingD, this.guildConfig.ratingK, false);
                     ratingTyped = (this.gameType == 1)
-                        ? this.ratingConfig.ratingEloPair(userRatings[i].ratingTeamers, userRatingsSub[currentSubIndex].ratingTeamers, false)
-                        : this.ratingConfig.ratingEloPair(userRatings[i].ratingFFA, userRatingsSub[currentSubIndex].ratingFFA, false);
+                        ? this.ratingConfig.ratingEloPair(userRatings[i].ratingTeamers, userRatingsSub[currentSubIndex].ratingTeamers, this.guildConfig.ratingD, this.guildConfig.ratingK, false)
+                        : this.ratingConfig.ratingEloPair(userRatings[i].ratingFFA, userRatingsSub[currentSubIndex].ratingFFA, this.guildConfig.ratingD, this.guildConfig.ratingK,false);
                     this.ratingNotes[i].rating += rating;
                     this.ratingNotesSub[currentSubIndex].rating -= rating;
                     this.ratingNotes[i].ratingTyped += ratingTyped;
@@ -211,12 +214,12 @@ export class RatingObject{
                 this.ratingNotes[i].fame += this.usersID.length;
                 this.ratingNotes[i].victoryType = this.victoryType;
             }
-            this.ratingNotes[i].money = this.ratingNotes[i].fame + this.ratingNotes[i].ratingTyped + this.ratingConfig.baseGold*this.usersID.length;
+            this.ratingNotes[i].money = this.ratingNotes[i].fame + this.ratingNotes[i].ratingTyped + this.guildConfig.ratingBaseMoney*this.usersID.length;
             if(this.victoryType != 0){
                 this.ratingNotes[i].fame += this.usersID.length;
-                this.ratingNotes[i].money = Math.round(this.ratingConfig.multiplierMoney*this.ratingNotes[i].money);
-                this.ratingNotes[i].rating = Math.round(this.ratingConfig.multiplierRating*this.ratingNotes[i].rating);
-                this.ratingNotes[i].ratingTyped = Math.round(this.ratingConfig.multiplierRating*this.ratingNotes[i].ratingTyped);
+                this.ratingNotes[i].money = Math.round(this.guildConfig.ratingMultiplierMoney*this.ratingNotes[i].money);
+                this.ratingNotes[i].rating = Math.round(this.guildConfig.ratingMultiplierRating*this.ratingNotes[i].rating);
+                this.ratingNotes[i].ratingTyped = Math.round(this.guildConfig.ratingMultiplierRating*this.ratingNotes[i].ratingTyped);
             }
             if (this.leaveUsersID.indexOf(this.ratingNotes[i].userID) != -1) {
                 this.ratingNotes[i].fame = 0;
@@ -225,11 +228,11 @@ export class RatingObject{
         }
         for(let i: number = 0; i < this.ratingNotesSub.length; i++){
             this.ratingNotesSub[i].fame = this.ratingNotes.length;
-            this.ratingNotesSub[i].money = Math.max(this.ratingNotesSub[i].fame + this.ratingNotesSub[i].ratingTyped + this.ratingConfig.baseGold, 0);
+            this.ratingNotesSub[i].money = Math.max(this.ratingNotesSub[i].fame + this.ratingNotesSub[i].ratingTyped + this.guildConfig.ratingBaseMoney, 0);
             if(this.victoryType != 0){
-                this.ratingNotesSub[i].money = Math.round(this.ratingConfig.multiplierMoney*this.ratingNotesSub[i].money);
-                this.ratingNotesSub[i].rating = Math.round(this.ratingConfig.multiplierRating*this.ratingNotesSub[i].rating);
-                this.ratingNotesSub[i].ratingTyped = Math.round(this.ratingConfig.multiplierRating*this.ratingNotesSub[i].ratingTyped);
+                this.ratingNotesSub[i].money = Math.round(this.guildConfig.ratingMultiplierMoney*this.ratingNotesSub[i].money);
+                this.ratingNotesSub[i].rating = Math.round(this.guildConfig.ratingMultiplierRating*this.ratingNotesSub[i].rating);
+                this.ratingNotesSub[i].ratingTyped = Math.round(this.guildConfig.ratingMultiplierRating*this.ratingNotesSub[i].ratingTyped);
             }
             if(this.leaveUsersID.indexOf(this.ratingNotesSub[i].userID) != -1){
                 this.ratingNotesSub[i].fame = 0;

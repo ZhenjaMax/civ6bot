@@ -37,7 +37,7 @@ export class AdapterNewSplit {
             collector.on("collect", async (reaction: MessageReaction, user: User) => {await collectorSplit(reaction, user)});
             for(let i in splitObject.emojis)
                 splitObject.reactions.push(await splitObject.message?.react(splitObject.emojis[i]) as MessageReaction);
-        } catch (splitError) {
+        } catch {
             splitObject.isProcessing = false;
             return;
         }

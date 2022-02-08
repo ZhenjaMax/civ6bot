@@ -5,12 +5,10 @@ import {IUserTimings} from "../../db/models/db.UserTimings";
 import {IUserPunishment} from "../../db/models/db.UserPunishment";
 import {BotlibTimings} from "../../botlib/botlib.timings";
 import {BotlibEmojis} from "../../botlib/botlib.emojis";
-import {ModerationConfig} from "../moderation/moderation.config";
 
 export class SocialEmbeds{
     botlibTimings: BotlibTimings = new BotlibTimings();
     botlibEmojis: BotlibEmojis = new BotlibEmojis();
-    moderationConfig: ModerationConfig = new ModerationConfig();
 
     bonus(bonusStreak: number, isMaxStreakFlag: boolean, moneyAdd: number, moneyTotal: number, fame: number, rating: number): MessageEmbed{
         let streakWord: string, bonusStringContent: string = "";
@@ -105,7 +103,7 @@ export class SocialEmbeds{
             .addField("🎩 Лайки/Дизлайки", `👍 ${userProfile.likes} / ${userProfile.dislikes} 👎`, true)
             .addField("📈 Рейтинг", `Общий: ${userRating.rating}\nFFA: ${userRating.ratingFFA}\nTeamers: ${userRating.ratingTeamers}`, true)
             .addField("🔎 Краткая статистика", `🗿 FFA: ${userRating.defeatsFFA+userRating.victoriesFFA}\n🐲 Teamers: ${userRating.defeatsTeamers+userRating.victoriesTeamers}`, true)
-            .addField("🐌 Очки слабости", `${userPunishment.weakPoints} / ${this.moderationConfig.maxWeakPoints}`, true);
+            .addField("🐌 Очки слабости", `${userPunishment.weakPoints}`, true);
         if(punishment != "")
             msg.addField("🔨 Наказание", punishment);
         if(userProfile.description != "")
@@ -118,8 +116,7 @@ export class SocialEmbeds{
     stats(user: User, userRating: IUserRating, userTimings: IUserTimings): MessageEmbed{
         let victories: string = "";
         victories += `${this.botlibEmojis.victoryScience}  ${userRating.victoriesScience}  |  ${this.botlibEmojis.victoryCulture}  ${userRating.victoriesCulture}\n`;
-        victories += `${this.botlibEmojis.victoryDomination}  ${userRating.victoriesDomination}  |  ${this.botlibEmojis.victoryReligious}  ${userRating.victoriesReligious}\n`;
-        victories += `${this.botlibEmojis.victoryDiplomatic}  ${userRating.victoriesDiplomatic}  |  ${this.botlibEmojis.victoryScore}  ${userRating.victoriesScore}`;
+        victories += `${this.botlibEmojis.victoryDomination}  ${userRating.victoriesDomination}  |  ${this.botlibEmojis.victoryReligious}  ${userRating.victoriesReligious} | ${this.botlibEmojis.victoryDiplomatic}  ${userRating.victoriesDiplomatic}\n`;
         return new MessageEmbed()
             .setTitle(`🔎 Статистика игрока ${user.tag}`)
             .setColor("#00a4c4")

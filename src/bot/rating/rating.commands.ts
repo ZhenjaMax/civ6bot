@@ -9,13 +9,12 @@ export abstract class RatingCommands{
 
     @Slash("ffa", { description: "Рейтинг для FFA" })
     async ratingFFA(
-        @SlashChoice("CC", "cc")
-        @SlashChoice("научная", "science")
-        @SlashChoice("культурная", "culture")
-        @SlashChoice("военная", "domination")
-        @SlashChoice("религиозная", "religious")
         @SlashChoice("дипломатическая", "diplomatic")
-        @SlashChoice("по счёту", "score")
+        @SlashChoice("религиозная", "religious")
+        @SlashChoice("военная", "domination")
+        @SlashChoice("культурная", "culture")
+        @SlashChoice("научная", "science")
+        @SlashChoice("CC", "cc")
         @SlashOption("победа", { description: "Тип победы", required: true }) victoryType: string,
         @SlashOption("игроки", { description: "Список игроков с опциями SUB, LEAVE, TIE", required: true }) players: string,
         interaction: CommandInteraction
@@ -23,13 +22,12 @@ export abstract class RatingCommands{
 
     @Slash("teamers", { description: "Рейтинг для Teamers" })
     async ratingTeamers(
-        @SlashChoice("GG", "gg")
-        @SlashChoice("научная", "science")
-        @SlashChoice("культурная", "culture")
-        @SlashChoice("военная", "domination")
-        @SlashChoice("религиозная", "religious")
         @SlashChoice("дипломатическая", "diplomatic")
-        @SlashChoice("по счёту", "score")
+        @SlashChoice("религиозная", "religious")
+        @SlashChoice("военная", "domination")
+        @SlashChoice("культурная", "culture")
+        @SlashChoice("научная", "science")
+        @SlashChoice("GG", "gg")
         @SlashOption("победа", { description: "Тип победы", required: true }) victoryType: string,
         @SlashOption("игроки", { description: "Список игроков с опциями SUB, LEAVE, TIE; игроков из одной команды записывать подряд", required: true }) players: string, // ; для ничьи между командами впишите TIE между группами игроков
         @SlashOption("количество-команд", {description: "по умолчанию - 2 команды"}) commandsAmount: number = 2,

@@ -33,38 +33,38 @@ export class LeaderboardService{
 
         switch(type){
             case "rating":
-                previousChannelID = guildConfig.leaderboardRatingChannel;
-                previousMessageID = guildConfig.leaderboardRatingMessage;
-                guildConfig.leaderboardRatingChannel = channel?.id || null;
-                guildConfig.leaderboardRatingMessage = msg?.id || null;
+                previousChannelID = guildConfig.leaderboardRatingChannelID;
+                previousMessageID = guildConfig.leaderboardRatingMessageID;
+                guildConfig.leaderboardRatingChannelID = channel?.id || null;
+                guildConfig.leaderboardRatingMessageID = msg?.id || null;
                 guildConfig.leaderboardRatingAmount = amount;
                 break;
             case "ratingFFA":
-                previousChannelID = guildConfig.leaderboardRatingFFAChannel;
-                previousMessageID = guildConfig.leaderboardRatingFFAMessage;
-                guildConfig.leaderboardRatingFFAChannel = channel?.id || null;
-                guildConfig.leaderboardRatingFFAMessage = msg?.id || null;
+                previousChannelID = guildConfig.leaderboardRatingFFAChannelID;
+                previousMessageID = guildConfig.leaderboardRatingFFAMessageID;
+                guildConfig.leaderboardRatingFFAChannelID = channel?.id || null;
+                guildConfig.leaderboardRatingFFAMessageID = msg?.id || null;
                 guildConfig.leaderboardRatingFFAAmount = amount;
                 break;
             case "ratingTeamers":
-                previousChannelID = guildConfig.leaderboardRatingTeamersChannel;
-                previousMessageID = guildConfig.leaderboardRatingTeamersMessage;
-                guildConfig.leaderboardRatingTeamersChannel = channel?.id || null;
-                guildConfig.leaderboardRatingTeamersMessage = msg?.id || null;
+                previousChannelID = guildConfig.leaderboardRatingTeamersChannelID;
+                previousMessageID = guildConfig.leaderboardRatingTeamersMessageID;
+                guildConfig.leaderboardRatingTeamersChannelID = channel?.id || null;
+                guildConfig.leaderboardRatingTeamersMessageID = msg?.id || null;
                 guildConfig.leaderboardRatingTeamersAmount = amount;
                 break;
             case "money":
-                previousChannelID = guildConfig.leaderboardMoneyChannel;
-                previousMessageID = guildConfig.leaderboardMoneyMessage;
-                guildConfig.leaderboardMoneyChannel = channel?.id || null;
-                guildConfig.leaderboardMoneyMessage = msg?.id || null;
+                previousChannelID = guildConfig.leaderboardMoneyChannelID;
+                previousMessageID = guildConfig.leaderboardMoneyMessageID;
+                guildConfig.leaderboardMoneyChannelID = channel?.id || null;
+                guildConfig.leaderboardMoneyMessageID = msg?.id || null;
                 guildConfig.leaderboardMoneyAmount = amount;
                 break;
             case "fame":
-                previousChannelID = guildConfig.leaderboardFameChannel;
-                previousMessageID = guildConfig.leaderboardFameMessage;
-                guildConfig.leaderboardFameChannel = channel?.id || null;
-                guildConfig.leaderboardFameMessage = msg?.id || null;
+                previousChannelID = guildConfig.leaderboardFameChannelID;
+                previousMessageID = guildConfig.leaderboardFameMessageID;
+                guildConfig.leaderboardFameChannelID = channel?.id || null;
+                guildConfig.leaderboardFameMessageID = msg?.id || null;
                 guildConfig.leaderboardFameAmount = amount;
                 break;
         }
@@ -76,12 +76,12 @@ export class LeaderboardService{
                 let previousMessage: Message = await previousChannel.messages.fetch(previousMessageID);
                 await previousMessage.delete();
             }
-        } catch (leaderboardRoutineError) {}
+        } catch {}
     }
 
     async create(interaction: CommandInteraction, type: string, amount: number){
         await interaction.deferReply({ephemeral: true});
-        if(!this.permissionsService.getUserPermissionStatus(interaction, 5))
+        if(!await this.permissionsService.getUserPermissionStatus(interaction, 5))
             return await interaction.editReply({embeds: this.botlibEmbeds.error("У вас нет прав для выполнения этой команды.")});
         if((amount > this.leaderboardConfig.maxLeaderboardUsers) || (amount < this.leaderboardConfig.minLeaderboardUsers))
             return await interaction.editReply({embeds: this.botlibEmbeds.error(`От ${this.leaderboardConfig.minLeaderboardUsers} до ${this.leaderboardConfig.maxLeaderboardUsers} игроков для таблицы.`)});
@@ -93,7 +93,7 @@ export class LeaderboardService{
 
     async delete(interaction: CommandInteraction, type: string){
         await interaction.deferReply({ephemeral: true});
-        if(!this.permissionsService.getUserPermissionStatus(interaction, 5))
+        if(!await this.permissionsService.getUserPermissionStatus(interaction, 5))
             return await interaction.editReply({embeds: this.botlibEmbeds.error("У вас нет прав для выполнения этой команды.")});
 
         await this.leaderboardRoutine(interaction, type, false);
@@ -106,24 +106,24 @@ export class LeaderboardService{
         let messageID: string|null = null;
         switch (type) {
             case "rating":
-                channelID = guildConfig.leaderboardRatingChannel;
-                messageID = guildConfig.leaderboardRatingMessage;
+                channelID = guildConfig.leaderboardRatingChannelID;
+                messageID = guildConfig.leaderboardRatingMessageID;
                 break;
             case "ratingFFA":
-                channelID = guildConfig.leaderboardRatingFFAChannel;
-                messageID = guildConfig.leaderboardRatingFFAMessage;
+                channelID = guildConfig.leaderboardRatingFFAChannelID;
+                messageID = guildConfig.leaderboardRatingFFAMessageID;
                 break;
             case "ratingTeamers":
-                channelID = guildConfig.leaderboardRatingTeamersChannel;
-                messageID = guildConfig.leaderboardRatingTeamersMessage;
+                channelID = guildConfig.leaderboardRatingTeamersChannelID;
+                messageID = guildConfig.leaderboardRatingTeamersMessageID;
                 break;
             case "money":
-                channelID = guildConfig.leaderboardMoneyChannel;
-                messageID = guildConfig.leaderboardMoneyMessage;
+                channelID = guildConfig.leaderboardMoneyChannelID;
+                messageID = guildConfig.leaderboardMoneyMessageID;
                 break;
             case "fame":
-                channelID = guildConfig.leaderboardFameChannel;
-                messageID = guildConfig.leaderboardFameMessage;
+                channelID = guildConfig.leaderboardFameChannelID;
+                messageID = guildConfig.leaderboardFameMessageID;
                 break;
         }
         if(!channelID || !messageID)
@@ -169,7 +169,7 @@ export class LeaderboardService{
             let channel: TextChannel = await interaction.guild?.channels.fetch(channelID) as TextChannel;
             let message: Message = await channel.messages.fetch(messageID);
             await message.edit({embeds: this.leaderboardEmbeds.leaderboard(usersID, values, type)});
-        } catch (leaderboardUpdateError) {
+        } catch {
             await this.leaderboardRoutine(interaction, type, false);
         }
     }

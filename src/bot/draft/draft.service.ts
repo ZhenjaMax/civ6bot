@@ -5,14 +5,17 @@ import {DraftEmbeds} from "./draft.embeds";
 import {DraftConfig} from "./draft.config";
 import {DraftButtons} from "./buttons/draft.buttons";
 import {BotlibCivilizations} from "../../botlib/botlib.civilizations";
+import {GuildConfigService, IGuildConfig} from "../../db/models/db.GuildConfig";
 
 export class DraftService{
-    draftEmbedObjectArray: DraftEmbedObject[] = [];
     draftEmbeds: DraftEmbeds = new DraftEmbeds();
-    botlibEmbeds: BotlibEmbeds = new BotlibEmbeds();
     draftConfig: DraftConfig = new DraftConfig();
     draftButtons: DraftButtons = new DraftButtons();
     draftEmbedObjectRoutine: DraftEmbedObjectRoutine = new DraftEmbedObjectRoutine();
+    guildConfigService: GuildConfigService = new GuildConfigService();
+    botlibEmbeds: BotlibEmbeds = new BotlibEmbeds();
+
+    draftEmbedObjectArray: DraftEmbedObject[] = [];
 
     private static _instance: DraftService;
     private constructor() {}
@@ -25,10 +28,12 @@ export class DraftService{
             await DEO.interaction.reply({embeds: this.botlibEmbeds.error("Для выполнения этой команды вы должны находиться в голосовом канале."), ephemeral: true});
             return false;
         }
+        let guildConfig: IGuildConfig = await this.guildConfigService.getOne(DEO.interaction.guildId);
+
         switch(DEO.type) {
             case "FFA":
-                if(DEO.amount < this.draftConfig.ffaCivilizationMin || DEO.amount > this.draftConfig.ffaCivilizationMax) {
-                    await DEO.interaction.reply({embeds: this.botlibEmbeds.error(`Поддерживается от ${this.draftConfig.ffaCivilizationMin} до ${this.draftConfig.ffaCivilizationMax} лидеров для одного игрока.`), ephemeral: true});
+                if(DEO.amount < guildConfig.draftFFACivilizationMin || DEO.amount > guildConfig.draftFFACivilizationMax) {
+                    await DEO.interaction.reply({embeds: this.botlibEmbeds.error(`Поддерживается от ${guildConfig.draftFFACivilizationMin} до ${guildConfig.draftFFACivilizationMax} лидеров для одного игрока.`), ephemeral: true});
                     return false;
                 }
                 break;
@@ -39,8 +44,8 @@ export class DraftService{
                 }
                 break;
             case "Blind":
-                if(DEO.amount < this.draftConfig.blindCivilizationMin || DEO.amount > this.draftConfig.blindCivilizationMax){
-                    await DEO.interaction.reply( {embeds: this.botlibEmbeds.error(`Поддерживается от ${this.draftConfig.blindCivilizationMin} до ${this.draftConfig.blindCivilizationMax} лидеров для одного игрока.`), ephemeral: true});
+                if(DEO.amount < guildConfig.draftBlindCivilizationMin || DEO.amount > guildConfig.draftBlindCivilizationMax){
+                    await DEO.interaction.reply( {embeds: this.botlibEmbeds.error(`Поддерживается от ${guildConfig.draftBlindCivilizationMin} до ${guildConfig.draftBlindCivilizationMax} лидеров для одного игрока.`), ephemeral: true});
                     return false;
                 }
                 break;
@@ -78,7 +83,8 @@ export class DraftService{
     }
 
     async getDraftFFA(interaction: CommandInteraction, amount: number, bans: string) {
-        let draftEmbedObject = new DraftEmbedObject(interaction, amount, bans);
+        let guildConfig: IGuildConfig = await this.guildConfigService.getOne(interaction.guildId);
+        let draftEmbedObject = new DraftEmbedObject(interaction, guildConfig, amount, bans);
         this.draftEmbedObjectRoutine.setType(draftEmbedObject,"FFA");
         if(!await this.checkDEO(draftEmbedObject))
             return;
@@ -86,7 +92,8 @@ export class DraftService{
     }
 
     async getDraftTeamers(interaction: CommandInteraction, amount: number, bans: string) {
-        let draftEmbedObject = new DraftEmbedObject(interaction, amount, bans);
+        let guildConfig: IGuildConfig = await this.guildConfigService.getOne(interaction.guildId);
+        let draftEmbedObject = new DraftEmbedObject(interaction, guildConfig, amount, bans);
         this.draftEmbedObjectRoutine.setType(draftEmbedObject,"Teamers");
         if(!await this.checkDEO(draftEmbedObject))
             return;
@@ -94,7 +101,8 @@ export class DraftService{
     }
 
     async getDraftBlind(interaction: CommandInteraction, amount: number, bans: string) {
-        let draftEmbedObject = new DraftEmbedObject(interaction, amount, bans);
+        let guildConfig: IGuildConfig = await this.guildConfigService.getOne(interaction.guildId);
+        let draftEmbedObject = new DraftEmbedObject(interaction, guildConfig, amount, bans);
         this.draftEmbedObjectRoutine.setType(draftEmbedObject,"Blind");
         if(!await this.checkDEO(draftEmbedObject))
             return;
@@ -111,7 +119,7 @@ export class DraftService{
                 components: this.draftButtons.blindDelete(),
                 fetchReply: true
             }) as Message;
-        } catch (blindError) {
+        } catch {
             draftEmbedObject.isProcessing = false;
             this.draftEmbedObjectArray.splice(this.draftEmbedObjectArray.indexOf(draftEmbedObject), 1);
             draftEmbedObject.pmArray.forEach(x => x.delete());
@@ -156,7 +164,7 @@ export class DraftService{
                         embeds: signEmbed(draftEmbedObject.interaction, this.draftEmbeds.draftBlindProcessing(draftEmbedObject)),
                         components: this.draftButtons.blindDelete(),
                     });
-                } catch (blindError) {
+                } catch {
                     let user: User = draftEmbedObject.users[draftEmbedObject.pmArray.length];
                     let msg: MessageEmbed[] = (user)
                         ? this.botlibEmbeds.error(`Один из игроков (${user.toString()}) заблокировал бота. Провести драфт невозможно.`)
@@ -196,8 +204,8 @@ class DraftEmbedObjectRoutine{
             case "Blind":
             case "FFA":
                 if(draftEmbedObject.amount == 0)
-                    draftEmbedObject.amount = Math.min(Math.floor(draftEmbedObject.civilizations.length / draftEmbedObject.users.length), this.draftConfig.ffaCivilizationMax);
-                if((draftEmbedObject.users.length != 0) && (draftEmbedObject.amount <= this.draftConfig.ffaCivilizationMax) && (draftEmbedObject.amount * draftEmbedObject.users.length <= draftEmbedObject.civilizations.length))
+                    draftEmbedObject.amount = Math.min(Math.floor(draftEmbedObject.civilizations.length / draftEmbedObject.users.length), draftEmbedObject.guildConfig.draftFFACivilizationMax);
+                if((draftEmbedObject.users.length != 0) && (draftEmbedObject.amount <= draftEmbedObject.guildConfig.draftFFACivilizationMax) && (draftEmbedObject.amount * draftEmbedObject.users.length <= draftEmbedObject.civilizations.length))
                     for (let i = 0; i < draftEmbedObject.users.length; i++){
                         draftEmbedObject.draft.push([]);
                         for (let j = 0; j < draftEmbedObject.amount; j++)

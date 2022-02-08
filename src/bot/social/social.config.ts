@@ -3,8 +3,6 @@ import {ColorResolvable} from "discord.js";
 export class SocialConfig{
     maxBonusStreak: number = 7;
 
-    moneyBase: number = 25;
-
     ratingChanceBase: number = 0.07;
     fameChanceBase: number = 0.14;
     fameChancePremium: number = 0.5;
@@ -13,7 +11,8 @@ export class SocialConfig{
     fameBase: number = 1;
     famePremium: number = 3;
 
-    fameForDislikeMin: number = 50;
+    //fameForDislikeMin: number = 50;
+    //moneyBase: number = 25;
 
     colorList: ColorResolvable[] = [
         "#ffff00",

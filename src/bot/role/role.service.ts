@@ -17,7 +17,7 @@ export class RoleService{
     }
 
     async create(interaction: CommandInteraction){
-        if(!this.permissionsService.getUserPermissionStatus(interaction, 5))
+        if(!await this.permissionsService.getUserPermissionStatus(interaction, 5))
             return await interaction.reply({embeds: this.botlibEmbeds.error("У вас нет прав для выполнения этой команды!\nЕсли вы хотите получить или убрать роли, перейдите в соответствующий канал."), ephemeral: true});
         await interaction.reply({
             embeds: [this.roleEmbeds.roles()],

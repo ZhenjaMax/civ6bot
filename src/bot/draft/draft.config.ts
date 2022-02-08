@@ -27,10 +27,6 @@ export class DraftConfig{
         [20, 54],   // Китай (2)
     ];
 
-    ffaCivilizationMin: number = 2;
-    ffaCivilizationMax: number = 4;
     teamersCommandsMin: number = 2;
     teamersCommandsMax: number = this.teamersThumbnailsURL.length;
-    blindCivilizationMin: number = 2;
-    blindCivilizationMax: number = 4;
 }

@@ -8,7 +8,7 @@ export class AdapterNewDraft {
     draftService: DraftService = DraftService.Instance;
 
     async getDraftFromNew(newVote: NewVote){
-        let DEO = new DraftEmbedObject(newVote.interaction, 0, newVote.bans);
+        let DEO = new DraftEmbedObject(newVote.interaction, await this.draftService.guildConfigService.getOne(newVote.interaction.guildId), 0, newVote.bans);
         DEO.initNew(newVote.users, newVote.botsCount);
         if(newVote.draftTypeFFA == "Blind")
             this.draftService.draftEmbedObjectRoutine.setType(DEO, newVote.draftTypeFFA);

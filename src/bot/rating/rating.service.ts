@@ -13,6 +13,7 @@ import * as schedule from "node-schedule";
 import {BotlibTimings} from "../../botlib/botlib.timings";
 import {AdapterAnyLeaderboard} from "../adapters/adapter.any.leaderboard";
 import {PermissionsService} from "../permissions/permissions.service";
+import {GuildConfigService, IGuildConfig} from "../../db/models/db.GuildConfig";
 
 export async function clearReports(): Promise<void>{
     let ratingService: RatingService = RatingService.Instance;
@@ -23,7 +24,7 @@ export async function clearReports(): Promise<void>{
             i--;
             try{
                 await ratingObject.message?.delete();
-            } catch (clearReportError) {}
+            } catch {}
         }
 }
 
@@ -39,6 +40,7 @@ export class RatingService{
     ratingEmbeds: RatingEmbeds = new RatingEmbeds();
     ratingButtons: RatingButtons = new RatingButtons();
     permissionsService: PermissionsService = PermissionsService.Instance;
+    guildConfigService: GuildConfigService = new GuildConfigService();
     adapterAnyLeaderboard: AdapterAnyLeaderboard = new AdapterAnyLeaderboard();
 
     ratingReports: RatingObject[] = [];
@@ -49,16 +51,65 @@ export class RatingService{
         return this._instance || (this._instance = new this());
     }
 
-    async updateRole(member: GuildMember, rating: number){
+    async updateRole(member: GuildMember, rating: number, guildConfig: IGuildConfig){
         let roleIndex: number = 0;
-        for (let value of this.ratingConfig.roleRanksValue)
-            if (value <= rating)
+        let roleRatingValues: number[] = [
+            guildConfig.ratingMinRole0,
+            guildConfig.ratingMinRole1,
+            guildConfig.ratingMinRole2,
+            guildConfig.ratingMinRole3,
+            guildConfig.ratingMinRole4,
+            guildConfig.ratingMinRole5,
+            guildConfig.ratingMinRole6,
+            guildConfig.ratingMinRole7,
+            guildConfig.ratingMinRole8,
+        ];
+        let isChanged: boolean = false;
+        let rolesRatingID: (string|null)[] = [
+            guildConfig.ratingRoleID0,
+            guildConfig.ratingRoleID1,
+            guildConfig.ratingRoleID2,
+            guildConfig.ratingRoleID3,
+            guildConfig.ratingRoleID4,
+            guildConfig.ratingRoleID5,
+            guildConfig.ratingRoleID6,
+            guildConfig.ratingRoleID7,
+            guildConfig.ratingRoleID8,
+        ];
+        for (let value of roleRatingValues)
+            if ((value <= rating) && (value != -1))
                 roleIndex++;
-        for (let i: number = 0; i < this.ratingConfig.roleRanksID.length; i++)
-            if ((i != roleIndex) && (member.roles.cache.has(this.ratingConfig.roleRanksID[i])))
-                await member.roles.remove(member.roles.cache.get(this.ratingConfig.roleRanksID[i]) as Role);
-        if (!member.roles.cache.has(this.ratingConfig.roleRanksID[roleIndex]))
-            await member.roles.add(await member.guild.roles.fetch(this.ratingConfig.roleRanksID[roleIndex]) as Role);
+            else
+                break;
+        for (let i: number = 0; i < rolesRatingID.length; i++)
+            if ((i != roleIndex) && (rolesRatingID[i] != null))
+                if(member.roles.cache.has(rolesRatingID[i] as string)){
+                    try {
+                        await member.roles.remove(member.roles.cache.get(rolesRatingID[i] as string) as Role);
+                    } catch {
+                        rolesRatingID[i] = null;
+                        isChanged = true;
+                    }
+                }
+        if (rolesRatingID[roleIndex] != null)
+            try {
+                await member.roles.add(await member.guild.roles.fetch(rolesRatingID[roleIndex] as string) as Role);
+            } catch {
+                rolesRatingID[roleIndex] = null;
+                isChanged = true;
+            }
+        if(isChanged){
+            guildConfig.ratingRoleID0 = rolesRatingID[0];
+            guildConfig.ratingRoleID1 = rolesRatingID[1];
+            guildConfig.ratingRoleID2 = rolesRatingID[2];
+            guildConfig.ratingRoleID3 = rolesRatingID[3];
+            guildConfig.ratingRoleID4 = rolesRatingID[4];
+            guildConfig.ratingRoleID5 = rolesRatingID[5];
+            guildConfig.ratingRoleID6 = rolesRatingID[6];
+            guildConfig.ratingRoleID7 = rolesRatingID[7];
+            guildConfig.ratingRoleID8 = rolesRatingID[8];
+            await this.guildConfigService.update(guildConfig);
+        }
     }
 
     protected applyObjects(ratingObject: RatingObject, userRatingsConcat: IUserRating[], userProfilesConcat: IUserProfile[], usersTimingsConcat: IUserTimings[], add: boolean = true){
@@ -100,9 +151,6 @@ export class RatingService{
                     case 5:
                         userRatingsConcat[i].victoriesDiplomatic += multiplier;
                         break;
-                    case 6:
-                        userRatingsConcat[i].victoriesScore += multiplier;
-                        break;
                 }
             userRatingsConcat[i].games += multiplier;
             userProfilesConcat[i].money += ratingNotesConcat[i].money*multiplier;
@@ -117,8 +165,15 @@ export class RatingService{
     }
 
     async sendToSpecifyChannel(interaction: CommandInteraction | ButtonInteraction, msg: MessageEmbed[]){
-        let ratingChannel: TextChannel = await interaction.guild?.channels.fetch(this.ratingConfig.ratingChannelID) as TextChannel;
-        await ratingChannel.send({embeds: msg});
+        let guildConfig: IGuildConfig = await this.guildConfigService.getOne(interaction.guildId);
+        if(guildConfig.ratingChannelID != null)
+            try{
+                let ratingChannel: TextChannel = await interaction.guild?.channels.fetch(guildConfig.ratingChannelID) as TextChannel;
+                await ratingChannel.send({embeds: msg});
+            } catch {
+                guildConfig.ratingChannelID = null;
+                await this.guildConfigService.update(guildConfig);
+            }
     }
 
     // Возвращаемое значение необходимо для rating.buttons.resolver.ts
@@ -147,7 +202,7 @@ export class RatingService{
             await ratingObject.interaction.editReply({embeds: msg});
 
         for(let i in userRatingsConcat)
-            await this.updateRole(await ratingObject.interaction.guild?.members.fetch(userRatingsConcat[i].userID) as GuildMember, userRatingsConcat[i].rating);
+            await this.updateRole(await ratingObject.interaction.guild?.members.fetch(userRatingsConcat[i].userID) as GuildMember, userRatingsConcat[i].rating, ratingObject.guildConfig);
 
         await this.adapterAnyLeaderboard.update(ratingObject.interaction, "rating");
         await this.adapterAnyLeaderboard.update(ratingObject.interaction,  ratingObject.gameType ? "ratingTeamers" : "ratingFFA");
@@ -157,11 +212,13 @@ export class RatingService{
     async rating(interaction: CommandInteraction, gameType: "FFA" | "Teamers", victoryType: string, message: string, commandsAmount: number = 0){
         await interaction.deferReply();
 
-        let ratingObject: RatingObject = new RatingObject(interaction, gameType, victoryType, message, commandsAmount);
+        let guildConfig: IGuildConfig = await this.guildConfigService.getOne(interaction.guildId);
+        if((guildConfig.ratingReportsChannelID == null) || (guildConfig.ratingChannelID == null))
+            return await interaction.editReply({embeds: this.botlibEmbeds.error(`Эта команда не была корректно настроена владельцем сервера.`)});
+        let ratingObject: RatingObject = new RatingObject(interaction, gameType, victoryType, message, commandsAmount, guildConfig);
         let ratingErrorNumber: number = ratingObject.init();
         if(ratingErrorNumber)
             return await interaction.editReply({embeds: this.botlibEmbeds.error(`Некорректный список участников игры.\n${this.ratingConfig.errors[ratingErrorNumber-1]}.`)});
-
         for(let id of ratingObject.usersID.concat(ratingObject.subUsersID)){
             let member: GuildMember|undefined = await interaction.guild?.members.fetch(id);
             if(!member)
@@ -169,10 +226,10 @@ export class RatingService{
             ratingObject.usernames.push(member.user.tag);
         }
 
-        if(this.permissionsService.getUserPermissionStatus(interaction, 3))
+        if(await this.permissionsService.getUserPermissionStatus(interaction, 3))
             return await this.applyRating(ratingObject, false);
 
-        let channel: TextChannel = await interaction.guild?.channels.fetch(this.ratingConfig.ratingReportsChannelID) as TextChannel;
+        let channel: TextChannel = await interaction.guild?.channels.fetch(guildConfig.ratingReportsChannelID) as TextChannel;
         ratingObject.message = await channel.send({
             embeds: [this.ratingEmbeds.ratingAwait(interaction.user, ratingObject)],
             components: this.ratingButtons.reportRows()
@@ -186,11 +243,14 @@ export class RatingService{
 
     async ratingAdd(interaction: CommandInteraction, member: GuildMember, ratingType: string, ratingAmount: number){
         await interaction.deferReply();
-
-        if(!this.permissionsService.getUserPermissionStatus(interaction, 4))
+        if(!await this.permissionsService.getUserPermissionStatus(interaction, 4))
             return await interaction.editReply({embeds: this.botlibEmbeds.error("У вас нет прав для выполнения этой команды.")});
         if(ratingAmount == 0)
             return await interaction.editReply({embeds: this.botlibEmbeds.error("Разница в рейтинге не должна быть равна 0.")});
+        let guildConfig: IGuildConfig = await this.guildConfigService.getOne(interaction.guildId);
+        if(guildConfig.ratingChannelID == null)
+            return await interaction.editReply({embeds: this.botlibEmbeds.error(`Эта команда не была корректно настроена владельцем сервера.`)});
+
         let userRating: IUserRating = await this.userRatingService.getOne(member.guild.id, member.id);
         let userRatingTotal: number;
         switch(ratingType){
@@ -208,14 +268,11 @@ export class RatingService{
                 break;
         }
         await this.userRatingService.update(userRating);
-
         let msg: MessageEmbed[] = [this.ratingEmbeds.ratingSingle(member.user, interaction.user, ratingType, ratingAmount, userRatingTotal)];
         await interaction.editReply({embeds: msg});
         await this.sendToSpecifyChannel(interaction, msg);
-
         if(ratingType == "Common")
-            await this.updateRole(member, userRating.rating);
-
+            await this.updateRole(member, userRating.rating, guildConfig);
         await this.adapterAnyLeaderboard.update(interaction,  (ratingType == "Common")
             ? "rating"
             : (ratingType == "FFA")
@@ -226,9 +283,12 @@ export class RatingService{
 
     async ratingSet(interaction: CommandInteraction, member: GuildMember, ratingType: string, ratingChange: number){
         await interaction.deferReply();
-
-        if(!this.permissionsService.getUserPermissionStatus(interaction, 4))
+        if(!await this.permissionsService.getUserPermissionStatus(interaction, 4))
             return await interaction.editReply({embeds: this.botlibEmbeds.error("У вас нет прав для выполнения этой команды.")});
+        let guildConfig: IGuildConfig = await this.guildConfigService.getOne(interaction.guildId);
+        if(guildConfig.ratingChannelID == null)
+            return await interaction.editReply({embeds: this.botlibEmbeds.error(`Эта команда не была корректно настроена владельцем сервера.`)});
+
         let userRating: IUserRating = await this.userRatingService.getOne(member.guild.id, member.id);
         let userRatingTotal: number = ratingChange;
         switch(ratingType){
@@ -252,10 +312,8 @@ export class RatingService{
         let msg: MessageEmbed[] = [this.ratingEmbeds.ratingSingle(member.user, interaction.user, ratingType, ratingChange, userRatingTotal)];
         await interaction.editReply({embeds: msg});
         await this.sendToSpecifyChannel(interaction, msg);
-
         if(ratingType == "Common")
-            await this.updateRole(member, userRating.rating);
-
+            await this.updateRole(member, userRating.rating, guildConfig);
         await this.adapterAnyLeaderboard.update(interaction,  (ratingType == "Common")
             ? "rating"
             : (ratingType == "FFA")
@@ -266,9 +324,11 @@ export class RatingService{
 
     async ratingCancel(interaction: CommandInteraction, gameNumber: number){
         await interaction.deferReply();
-
-        if(!this.permissionsService.getUserPermissionStatus(interaction, 3))
+        if(!await this.permissionsService.getUserPermissionStatus(interaction, 3))
             return await interaction.editReply({embeds: this.botlibEmbeds.error("У вас нет прав для выполнения этой команды.")});
+        let guildConfig: IGuildConfig = await this.guildConfigService.getOne(interaction.guildId);
+        if(guildConfig.ratingChannelID)
+            return await interaction.editReply({embeds: this.botlibEmbeds.error(`Эта команда не была корректно настроена владельцем сервера.`)});
         let ratingNotes: IRatingNote[] = await this.ratingNoteService.getAllByID(gameNumber, interaction.guildId);
         if(ratingNotes.length == 0)
             return await interaction.editReply({embeds: this.botlibEmbeds.error("Игры с таким ID не существует.")});
@@ -280,36 +340,33 @@ export class RatingService{
             userRatings.push(await this.userRatingService.getOne(interaction.guildId, ratingNotes[i].userID));
             userProfiles.push(await this.userProfileService.getOne(interaction.guildId, ratingNotes[i].userID));
         }
-        let ratingObject: RatingObject = new RatingObject(interaction, "", "", "", -1);
+        let ratingObject: RatingObject = new RatingObject(interaction, "", "", "", -1, guildConfig);
         ratingObject.loadNotes(ratingNotes);
         this.applyObjects(ratingObject, userRatings, userProfiles, [], false);
-
         await this.ratingNoteService.updateFromArray(ratingNotes);
         await this.userRatingService.updateFromArray(userRatings);
         await this.userProfileService.updateFromArray(userProfiles);
-
         for(let i in ratingNotes){
             let member: GuildMember|undefined = await interaction.guild?.members.fetch(ratingNotes[i].userID);
             ratingObject.usernames.push((member) ? member.user.tag : `<@${ratingNotes[i].userID}>`);
         }
-
         let msg: MessageEmbed[] = [this.ratingEmbeds.ratingCancel(interaction.user, ratingObject, userRatings)];
         await this.sendToSpecifyChannel(ratingObject.interaction, msg);
         await ratingObject.interaction.editReply({embeds: msg});
-
         for(let i in userRatings)
-            await this.updateRole(await ratingObject.interaction.guild?.members.fetch(userRatings[i].userID) as GuildMember, userRatings[i].rating);
-
+            await this.updateRole(await ratingObject.interaction.guild?.members.fetch(userRatings[i].userID) as GuildMember, userRatings[i].rating, guildConfig);
         await this.adapterAnyLeaderboard.update(interaction, "rating");
         await this.adapterAnyLeaderboard.update(interaction,  ratingNotes[0].gameType ? "ratingTeamers" : "ratingFFA");
     }
 
     async ratingRevert(interaction: CommandInteraction, gameNumber: number){
         await interaction.deferReply();
-
-        if(!this.permissionsService.getUserPermissionStatus(interaction, 3))
+        if(!await this.permissionsService.getUserPermissionStatus(interaction, 3))
             return await interaction.editReply({embeds: this.botlibEmbeds.error("У вас нет прав для выполнения этой команды.")});
         let ratingNotes: IRatingNote[] = await this.ratingNoteService.getAllByID(gameNumber, interaction.guildId);
+        let guildConfig: IGuildConfig = await this.guildConfigService.getOne(interaction.guildId);
+        if(guildConfig.ratingChannelID)
+            return await interaction.editReply({embeds: this.botlibEmbeds.error(`Эта команда не была корректно настроена владельцем сервера.`)});
         if(ratingNotes.length == 0)
             return await interaction.editReply({embeds: this.botlibEmbeds.error("Игры с таким ID не существует.")});
         if(ratingNotes[0].isActive)
@@ -321,27 +378,22 @@ export class RatingService{
             userProfiles.push(await this.userProfileService.getOne(interaction.guildId, ratingNotes[i].userID));
             userTimings.push(await this.userTimingsService.getOne(interaction.guildId, ratingNotes[i].userID));
         }
-        let ratingObject: RatingObject = new RatingObject(interaction, "", "", "", -1);
+        let ratingObject: RatingObject = new RatingObject(interaction, "", "", "", -1, guildConfig);
         ratingObject.loadNotes(ratingNotes);
         this.applyObjects(ratingObject, userRatings, userProfiles, userTimings);
-
         await this.ratingNoteService.updateFromArray(ratingNotes);
         await this.userRatingService.updateFromArray(userRatings);
         await this.userProfileService.updateFromArray(userProfiles);
         await this.userTimingsService.updateFromArray(userTimings);
-
         for(let i in ratingNotes){
             let member: GuildMember|undefined = await interaction.guild?.members.fetch(ratingNotes[i].userID);
             ratingObject.usernames.push((member) ? member.user.tag : `<@${ratingNotes[i].userID}>`);
         }
-
         let msg: MessageEmbed[] = [this.ratingEmbeds.ratingRevert(interaction.user, ratingObject, userRatings)];
         await this.sendToSpecifyChannel(ratingObject.interaction, msg);
         await ratingObject.interaction.editReply({embeds: msg});
-
         for(let i in userRatings)
-            await this.updateRole(await ratingObject.interaction.guild?.members.fetch(userRatings[i].userID) as GuildMember, userRatings[i].rating);
-
+            await this.updateRole(await ratingObject.interaction.guild?.members.fetch(userRatings[i].userID) as GuildMember, userRatings[i].rating, guildConfig);
         await this.adapterAnyLeaderboard.update(interaction, "rating");
         await this.adapterAnyLeaderboard.update(interaction,  ratingNotes[0].gameType ? "ratingTeamers" : "ratingFFA");
     }

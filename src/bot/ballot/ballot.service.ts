@@ -45,7 +45,7 @@ export class BallotService{
 
     async create(interaction: CommandInteraction, member: GuildMember, isDefault: boolean, content: string) {
         await interaction.deferReply({ephemeral: true});
-        if(!this.permissionsService.getUserPermissionStatus(interaction, 4))
+        if(!await this.permissionsService.getUserPermissionStatus(interaction, 4))
             return await interaction.editReply({embeds: this.botlibEmbeds.error("У вас нет прав для выполнения этой команды.")});
         let userRating: IUserRating = await this.userRatingService.getOne(member.guild.id, member.id);
         let userTimings: IUserTimings = await this.userTimingsService.getOne(member.guild.id, member.id);
@@ -58,7 +58,7 @@ export class BallotService{
 
     async resolve(interaction: CommandInteraction) {
         await interaction.deferReply({ephemeral: true});
-        if(!this.permissionsService.getUserPermissionStatus(interaction, 4))
+        if(!await this.permissionsService.getUserPermissionStatus(interaction, 4))
             return await interaction.editReply({embeds: this.botlibEmbeds.error("У вас нет прав для выполнения этой команды.")});
         if(!interaction.channel)
             return await interaction.editReply({embeds: this.botlibEmbeds.error("Произошла ошибка во время поиска бюллетеней.")});

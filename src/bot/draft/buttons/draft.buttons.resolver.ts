@@ -35,7 +35,7 @@ export abstract class DraftButtonsResolver{
                 await draftEmbedObject.interaction.editReply({embeds: [this.draftEmbeds.draftBlindProcessing(draftEmbedObject)]});
             else
                 await draftEmbedObject.blindChatMessage.edit({embeds: [this.draftEmbeds.draftBlindProcessing(draftEmbedObject)]})
-        } catch (buttonError) {
+        } catch {
             let user: User = interaction.user;
             let dm: DMChannel = await user.createDM();
             let msg = await dm.messages.fetch(interaction.message.id) as Message;
@@ -62,7 +62,7 @@ export abstract class DraftButtonsResolver{
             } else
                 await msg.edit({ embeds: [this.draftEmbeds.redraftProcessing(draftEmbedObject)] });
             return await interaction.deferUpdate();
-        } catch (buttonError){
+        } catch {
             return;
         }
     }

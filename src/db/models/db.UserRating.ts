@@ -21,7 +21,6 @@ export const UserRatingModel = {
     victoriesDomination:{ type: DataTypes.INTEGER, 	defaultValue: 0, allowNull: false },
     victoriesReligious:	{ type: DataTypes.INTEGER, 	defaultValue: 0, allowNull: false },
     victoriesDiplomatic:{ type: DataTypes.INTEGER, 	defaultValue: 0, allowNull: false },
-    victoriesScore:		{ type: DataTypes.INTEGER, 	defaultValue: 0, allowNull: false },
 };
 
 export interface IUserRating {
@@ -44,7 +43,6 @@ export interface IUserRating {
     victoriesDomination: number;
     victoriesReligious:	number;
     victoriesDiplomatic: number;
-    victoriesScore: number;
 }
 
 export class UserRating extends Model {}

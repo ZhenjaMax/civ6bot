@@ -8,7 +8,7 @@ export class AdapterSplitDraft{
     draftService: DraftService = DraftService.Instance;
 
     async getDraftFromSplit(currentSplit: SplitObject){
-        let DEO = new DraftEmbedObject(currentSplit.interaction, 2, currentSplit.newVote?.bans as string);
+        let DEO = new DraftEmbedObject(currentSplit.interaction, await this.draftService.guildConfigService.getOne(currentSplit.interaction.guildId), 2, currentSplit.newVote?.bans as string);
         DEO.initNew(currentSplit.newVote?.users as User[], currentSplit.newVote?.botsCount as number);
         this.draftService.draftEmbedObjectRoutine.setType(DEO, currentSplit.newVote?.type);
         let channel: TextChannel = currentSplit.newVote?.interaction.channel as TextChannel;

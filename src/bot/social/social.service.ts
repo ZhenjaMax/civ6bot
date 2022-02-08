@@ -9,9 +9,9 @@ import {SocialButtons} from "./buttons/social.buttons";
 import {IUserRating, UserRatingService} from "../../db/models/db.UserRating";
 import {IUserPunishment, UserPunishmentService} from "../../db/models/db.UserPunishment";
 import {IProfileMessagePair} from "./social.models";
-import {RatingConfig} from "../rating/rating.config";
 import {AdapterAnyLeaderboard} from "../adapters/adapter.any.leaderboard";
 import {PermissionsService} from "../permissions/permissions.service";
+import {GuildConfigService, IGuildConfig} from "../../db/models/db.GuildConfig";
 
 export class SocialService{
     userTimingsService: UserTimingsService = new UserTimingsService();
@@ -24,7 +24,7 @@ export class SocialService{
     botlibEmbeds: BotlibEmbeds = new BotlibEmbeds();
     botlibTimings: BotlibTimings = new BotlibTimings();
     permissionsService: PermissionsService = PermissionsService.Instance;
-    ratingConfig: RatingConfig = new RatingConfig();
+    guildConfigService: GuildConfigService = new GuildConfigService();
     adapterAnyLeaderboard: AdapterAnyLeaderboard = new AdapterAnyLeaderboard();
 
     profileMessages: IProfileMessagePair[] = [];
@@ -48,11 +48,12 @@ export class SocialService{
 
         let userProfile: IUserProfile = await this.userProfileService.getOne(member.guild.id, member.id);
         let userRating: IUserRating = await this.userRatingService.getOne(member.guild.id, member.id);
+        let guildConfig: IGuildConfig = await this.guildConfigService.getOne(interaction.guildId);
 
         let isMaxBonusStreak: boolean = (userProfile.bonusStreak == this.socialConfig.maxBonusStreak);
         userProfile.bonusStreak = (deltaDays == 1) ? Math.min(userProfile.bonusStreak+1, this.socialConfig.maxBonusStreak) : 1;
         userTimings.bonus = new Date();
-        let money: number = Math.round(this.socialConfig.moneyBase*(userProfile.bonusStreak + Math.log10(userProfile.fame+1) + Math.random() - 0.5));
+        let money: number = Math.round(guildConfig.socialBaseMoney*(userProfile.bonusStreak + Math.log10(userProfile.fame+1) + Math.random() - 0.5));
         let fame: number = (isMaxBonusStreak)
             ? ((Math.random() < this.socialConfig.fameChancePremium)
                 ? this.socialConfig.famePremium
@@ -110,8 +111,9 @@ export class SocialService{
                 return interaction.reply({embeds: this.botlibEmbeds.error(`Вы уже ставили дизлайк сегодня! Следующий будет доступен через ${this.botlibTimings.getTimeToNextDayString()}.`), ephemeral: true});
 
         let authorUserProfile: IUserProfile = await this.userProfileService.getOne(authorMember.guild.id, authorMember.id);
-        if(authorUserProfile.fame < this.socialConfig.fameForDislikeMin)
-            return interaction.reply({embeds: this.botlibEmbeds.error(`Для использования этой команды необходимо минимум ${this.socialConfig.fameForDislikeMin} 🏆 славы.`), ephemeral: true});
+        let guildConfig: IGuildConfig = await this.guildConfigService.getOne(interaction.guildId);
+        if(authorUserProfile.fame < guildConfig.socialFameForDislike)
+            return interaction.reply({embeds: this.botlibEmbeds.error(`Для использования этой команды необходимо минимум ${guildConfig.socialFameForDislike} 🏆 славы.`), ephemeral: true});
 
         authorUserTimings.dislike = new Date();
         authorUserProfile.fame -= 1;
@@ -143,7 +145,7 @@ export class SocialService{
     }
 
     async moneySet(interaction: CommandInteraction, member: GuildMember, moneyAmount: number){
-        if(!this.permissionsService.getUserPermissionStatus(interaction, 4))
+        if(!await this.permissionsService.getUserPermissionStatus(interaction, 4))
             return await interaction.reply({embeds: this.botlibEmbeds.error("У вас нет прав для выполнения этой команды."), ephemeral: true});
         if(moneyAmount <= 0)
             await interaction.reply({embeds: this.botlibEmbeds.error("Введите целое число больше 0."), ephemeral: true});
@@ -157,7 +159,7 @@ export class SocialService{
     }
 
     async moneyAdd(interaction: CommandInteraction, member: GuildMember, moneyDelta: number){
-        if(!this.permissionsService.getUserPermissionStatus(interaction, 4))
+        if(!await this.permissionsService.getUserPermissionStatus(interaction, 4))
             return await interaction.reply({embeds: this.botlibEmbeds.error("У вас нет прав для выполнения этой команды."), ephemeral: true});
         let userProfile: IUserProfile = await this.userProfileService.getOne(member.guild.id, member.id);
 
@@ -176,9 +178,21 @@ export class SocialService{
         let userRating: IUserRating = await this.userRatingService.getOne(member.guild.id, member.id);
 
         let profileMessagePair: IProfileMessagePair|undefined = this.profileMessages.filter(x => (x.message.guildId == interaction.guildId))[0];
+        let guildConfig: IGuildConfig = await this.guildConfigService.getOne(interaction.guildId);
+        let roleRatingValues: number[] = [
+            guildConfig.ratingMinRole0,
+            guildConfig.ratingMinRole1,
+            guildConfig.ratingMinRole2,
+            guildConfig.ratingMinRole3,
+            guildConfig.ratingMinRole4,
+            guildConfig.ratingMinRole5,
+            guildConfig.ratingMinRole6,
+            guildConfig.ratingMinRole7,
+            guildConfig.ratingMinRole8,
+        ];
         let newProfileMessagePair: IProfileMessagePair = {
             message: await interaction.reply({
-                embeds: signEmbed(interaction, this.socialEmbeds.profile(member.user, this.socialConfig.colorList[this.ratingConfig.roleRanksValue.filter(x => userRating.rating >= x).length], userProfile, userPunishment, userRating)),
+                embeds: signEmbed(interaction, this.socialEmbeds.profile(member.user, this.socialConfig.colorList[roleRatingValues.filter(x => userRating.rating >= x).length], userProfile, userPunishment, userRating)),
                 components: this.socialButtons.profileRows(),
                 fetchReply: true
             }) as Message,
@@ -212,7 +226,7 @@ export class SocialService{
     }
 
     async fameSet(interaction: CommandInteraction, member: GuildMember, fameAmount: number){
-        if(!this.permissionsService.getUserPermissionStatus(interaction, 4))
+        if(!await this.permissionsService.getUserPermissionStatus(interaction, 4))
             return await interaction.reply({embeds: this.botlibEmbeds.error("У вас нет прав для выполнения этой команды."), ephemeral: true});
         if(fameAmount <= 0)
             await interaction.reply({embeds: this.botlibEmbeds.error("Введите целое число больше 0."), ephemeral: true});
@@ -226,7 +240,7 @@ export class SocialService{
     }
 
     async fameAdd(interaction: CommandInteraction, member: GuildMember, fameDelta: number){
-        if(!this.permissionsService.getUserPermissionStatus(interaction, 4))
+        if(!await this.permissionsService.getUserPermissionStatus(interaction, 4))
             return await interaction.reply({embeds: this.botlibEmbeds.error("У вас нет прав для выполнения этой команды."), ephemeral: true});
         let userProfile: IUserProfile = await this.userProfileService.getOne(member.guild.id, member.id);
 
